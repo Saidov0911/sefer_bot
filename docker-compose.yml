@@ -1,0 +1,24 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DB_PATH: /app/data/bot.db
+      GOOGLE_CREDENTIALS_FILE: /app/credentials.json
+    volumes:
+      - ./data:/app/data
+      - ./credentials.json:/app/credentials.json:ro
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
