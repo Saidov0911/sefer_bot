@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, pagination %}
+{% block title %}Arizalar{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Arizalar <span class="muted">({{ total }})</span></h1>
+  <a class="btn" href="{{ export_url }}">📥 CSV yuklab olish</a>
+</div>
+
+<div class="toolbar">
+  <div class="tabs">
+    <a href="/applications?{{ {'q': q} | urlencode }}" class="{{ 'active' if not status }}">
+      Hammasi<span class="count">{{ counts.values() | sum }}</span>
+    </a>
+    {% for s in STATUSES %}
+    <a href="/applications?{{ {'status': s, 'q': q} | urlencode }}" class="{{ 'active' if status == s }}">
+      {{ STATUS_LABELS[s] }}<span class="count">{{ counts[s] }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  <form class="search" method="get" action="/applications">
+    <input type="hidden" name="status" value="{{ status }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Ism, telefon, @username yoki ID">
+    <button class="btn">Qidirish</button>
+    {% if q %}<a class="btn" href="/applications?{{ {'status': status} | urlencode }}">Tozalash</a>{% endif %}
+  </form>
+</div>
+
+<div class="table-wrap">
+  {% if apps %}
+  <table>
+    <thead>
+      <tr><th>Sana</th><th>Ism familiya</th><th>Telefon</th><th>Telegram</th><th class="num">Takliflar</th><th>Holat</th></tr>
+    </thead>
+    <tbody>
+    {% for a in apps %}
+      <tr>
+        <td class="muted">{{ a.created_at | local_time }}</td>
+        <td><a href="/applications/{{ a.user_id }}">{{ a.full_name }}</a></td>
+        <td>{{ a.phone }}</td>
+        <td>{% if a.username %}@{{ a.username }}{% else %}<span class="muted">{{ a.user_id }}</span>{% endif %}</td>
+        <td class="num">{{ a.referrals }}</td>
+        <td>{{ badge(a.status) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Hech narsa topilmadi.</div>
+  {% endif %}
+</div>
+
+{{ pagination(request, page, pages) }}
+{% endblock %}

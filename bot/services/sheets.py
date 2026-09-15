@@ -1,15 +1,14 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import gspread
 
 from bot.db import Application
+from bot.utils import local_time
 
 log = logging.getLogger(__name__)
 
-TASHKENT = timezone(timedelta(hours=5))
 HEADER = ["Sana", "Telegram ID", "Username", "Ism familiya", "Telefon", "Takliflar", "CV", "Esse", "Kitoblar haqida"]
 
 
@@ -36,9 +35,8 @@ class Sheets:
         return self._ws
 
     def _append(self, app: Application, cv_link: str | None) -> None:
-        created = datetime.fromisoformat(app.created_at).replace(tzinfo=timezone.utc).astimezone(TASHKENT)
         row = [
-            created.strftime("%Y-%m-%d %H:%M"),
+            local_time(app.created_at),
             str(app.user_id),
             f"@{app.username}" if app.username else "",
             app.full_name,

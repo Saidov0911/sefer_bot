@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Kirish{% endblock %}
+{% block content %}
+<div class="login">
+  <h1>Sefer admin</h1>
+  <form class="card" method="post" action="/login">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+    <label>Login <input type="text" name="username" autocomplete="username" required autofocus></label>
+    <label>Parol <input type="password" name="password" autocomplete="current-password" required></label>
+    <button class="btn btn-primary">Kirish</button>
+  </form>
+</div>
+{% endblock %}

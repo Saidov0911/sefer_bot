@@ -8,3 +8,9 @@ class Form(StatesGroup):
     essay = State()
     answer = State()
     confirm = State()
+
+
+class Admin(StatesGroup):
+    search = State()
+    broadcast_message = State()
+    broadcast_confirm = State()

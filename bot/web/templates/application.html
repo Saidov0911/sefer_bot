@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}{{ app.full_name }}{% endblock %}
+{% block content %}
+<a class="back" href="/applications">← Arizalar</a>
+<div class="page-head">
+  <h1>{{ app.full_name }}</h1>
+  {{ badge(app.status) }}
+</div>
+
+<div class="grid detail">
+  <div class="stack">
+    <div class="card">
+      <h2>📝 Nega aynan sizni loyihaga qabul qilishimiz kerak?</h2>
+      <p class="prose">{{ app.essay }}</p>
+    </div>
+    <div class="card">
+      <h2>📚 Elektron, audio yoki qog‘oz kitob — qaysi biri kelajak uchun samaraliroq?</h2>
+      <p class="prose">{{ app.answer }}</p>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <h2>Ma’lumotlar</h2>
+      <dl class="info">
+        <dt>Telefon</dt>
+        <dd><a href="tel:{{ app.phone }}">{{ app.phone }}</a></dd>
+        <dt>Telegram</dt>
+        <dd>
+          {% if app.username %}<a href="https://t.me/{{ app.username }}" target="_blank" rel="noopener">@{{ app.username }}</a><br>{% endif %}
+          <span class="muted">ID {{ app.user_id }}</span>
+        </dd>
+        <dt>Takliflar</dt>
+        <dd>{{ app.referrals }}</dd>
+        <dt>CV</dt>
+        <dd>{{ app.cv_file_name or "fayl" }}</dd>
+        <dt>Topshirilgan</dt>
+        <dd>{{ app.created_at | local_time }}</dd>
+        {% if app.status_updated_at %}
+        <dt>Holat o‘zgargan</dt>
+        <dd>{{ app.status_updated_at | local_time }}</dd>
+        {% endif %}
+      </dl>
+      <div class="actions">
+        <a class="btn btn-primary" href="/applications/{{ app.user_id }}/cv">📄 CV yuklab olish</a>
+        {% if group_link %}<a class="btn" href="{{ group_link }}" target="_blank" rel="noopener">💬 Guruhdagi xabar</a>{% endif %}
+      </div>
+    </div>
+
+    <form class="card" method="post" action="/applications/{{ app.user_id }}/status">
+      <h2>Holatni o‘zgartirish</h2>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="radio-list">
+        {% for s in STATUSES %}
+        <label><input type="radio" name="status" value="{{ s }}" {{ 'checked' if s == app.status }}> {{ STATUS_LABELS[s] }}</label>
+        {% endfor %}
+      </div>
+      <label class="check"><input type="checkbox" name="notify" value="1" checked> Foydalanuvchiga xabar yuborish</label>
+      <p class="hint">Xabar «Ko‘rib chiqilmoqda», «Qabul qilindi» va «Rad etildi» holatlari uchun yuboriladi.</p>
+      <div class="actions"><button class="btn btn-primary">Saqlash</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

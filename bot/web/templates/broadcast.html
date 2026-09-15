@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Ommaviy xabar{% endblock %}
+{% block head %}{% if job and job.running %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+{% block content %}
+<h1>Ommaviy xabar</h1>
+
+{% if job %}
+<div class="card" style="margin-bottom: 16px">
+  <div class="page-head" style="margin-bottom: 0">
+    <h2>
+      {% if job.running %}⏳ Tarqatma davom etmoqda
+      {% elif job.cancelled %}⛔ Oxirgi tarqatma to‘xtatilgan
+      {% else %}✅ Oxirgi tarqatma tugagan{% endif %}
+    </h2>
+    {% if job.running %}
+    <form method="post" action="/broadcast/stop">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn btn-danger">⛔ To‘xtatish</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="progress"><div style="width: {{ job.percent }}%"></div></div>
+  <div>
+    <strong>{{ job.done }} / {{ job.total }}</strong> ({{ job.percent }}%) ·
+    Yetkazildi: {{ job.sent }} · Bloklagan: {{ job.blocked }} · Xato: {{ job.failed }}
+  </div>
+  <p class="hint">
+    {{ AUDIENCE_LABELS.get(job.audience, job.audience) }} ·
+    {{ "bot orqali" if job.started_by.startswith("bot") else "web orqali" }} ·
+    boshlangan {{ job.started_at | dt }}{% if job.finished_at %} · tugagan {{ job.finished_at | dt }}{% endif %}
+  </p>
+</div>
+{% endif %}
+
+<form class="card" method="post" action="/broadcast">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label class="field">
+    <span>Kimga</span>
+    <select name="audience">
+      {% for a in AUDIENCES %}
+      <option value="{{ a }}" {{ 'selected' if a == audience }}>{{ AUDIENCE_LABELS[a] }} — {{ audience_counts[a] }} ta</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">
+    <span>Xabar matni</span>
+    <textarea name="text" maxlength="4096" required>{{ text }}</textarea>
+  </label>
+  <p class="hint">
+    Oddiy matn sifatida yuboriladi. Rasm, video yoki formatlangan xabar uchun botda
+    <code>/admin</code> → «Ommaviy xabar» dan foydalaning. Botni bloklaganlarga yuborilmaydi.
+  </p>
+  <div class="actions">
+    <button class="btn" name="action" value="test" {{ 'disabled' if job and job.running }}>🧪 Adminlarga sinov ({{ admin_count }})</button>
+    <button class="btn btn-primary" name="action" value="start" {{ 'disabled' if job and job.running }}
+            onclick="return confirm('Xabar tanlangan auditoriyaga yuborilsinmi?')">🚀 Yuborish</button>
+  </div>
+</form>
+{% endblock %}

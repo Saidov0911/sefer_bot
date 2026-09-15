@@ -1,0 +1,13 @@
+{% macro badge(status) -%}
+{% if status %}<span class="badge badge-{{ status }}">{{ STATUS_LABELS.get(status, status) }}</span>{% else %}<span class="muted">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro pagination(request, page, pages) -%}
+{% if pages > 1 %}
+<nav class="pagination">
+  {% if page > 1 %}<a class="btn" href="{{ url_with(request, page=page - 1) }}">← Oldingi</a>{% endif %}
+  <span class="muted">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="btn" href="{{ url_with(request, page=page + 1) }}">Keyingi →</a>{% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}

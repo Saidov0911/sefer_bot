@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, pagination %}
+{% block title %}Foydalanuvchilar{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Foydalanuvchilar <span class="muted">({{ total }})</span></h1>
+  <form class="search" method="get" action="/users">
+    <input type="search" name="q" value="{{ q }}" placeholder="Ism, @username yoki ID">
+    <button class="btn">Qidirish</button>
+    {% if q %}<a class="btn" href="/users">Tozalash</a>{% endif %}
+  </form>
+</div>
+
+<div class="table-wrap">
+  {% if users %}
+  <table>
+    <thead>
+      <tr>
+        <th>Qo‘shilgan</th><th>Ism</th><th>Username</th><th>ID</th><th class="num">Takliflar</th>
+        <th>Kim taklif qilgan</th><th>Bot</th><th>Ariza</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td class="muted">{{ u.created_at | local_time }}</td>
+        <td>{{ u.tg_name or "—" }}</td>
+        <td>{% if u.username %}<a href="https://t.me/{{ u.username }}" target="_blank" rel="noopener">@{{ u.username }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="muted">{{ u.id }}</td>
+        <td class="num">{{ u.referrals }}</td>
+        <td>{% if u.referrer_id %}<a href="/users?q={{ u.referrer_id }}">{{ u.referrer_id }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{% if u.is_active %}<span class="badge badge-accepted">faol</span>{% else %}<span class="badge badge-muted">bloklagan</span>{% endif %}</td>
+        <td>{% if u.app_status %}<a href="/applications/{{ u.id }}">{{ badge(u.app_status) }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Hech kim topilmadi.</div>
+  {% endif %}
+</div>
+
+{{ pagination(request, page, pages) }}
+{% endblock %}

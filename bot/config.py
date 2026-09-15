@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     google_sheet_id: str | None = None
     google_worksheet: str = "Arizalar"
 
+    # Web admin panel (ADMIN_PASSWORD bo'sh bo'lsa o'chirilgan)
+    admin_username: str = "admin"
+    admin_password: str | None = None
+    web_host: str = "0.0.0.0"
+    web_port: int = 8080
+    web_secret_key: str | None = None  # bo'sh bo'lsa har restartda sessiyalar bekor bo'ladi
+    web_https_only: bool = False  # HTTPS orqasida ishlaganda True qiling
+
     @cached_property
     def admin_id_set(self) -> set[int]:
         return {int(x) for x in self.admin_ids.replace(" ", "").split(",") if x}
@@ -36,6 +44,10 @@ class Settings(BaseSettings):
     @property
     def sheets_enabled(self) -> bool:
         return bool(self.google_credentials_file and self.google_sheet_id)
+
+    @property
+    def web_enabled(self) -> bool:
+        return bool(self.admin_password)
 
 
 settings = Settings()

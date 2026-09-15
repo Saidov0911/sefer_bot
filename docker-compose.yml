@@ -7,6 +7,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       DB_PATH: /app/data/bot.db
       GOOGLE_CREDENTIALS_FILE: /app/credentials.json
+    ports:
+      # Web admin panel. Faqat serverning o'zidan ochiladi — tashqaridan nginx/Caddy (HTTPS) orqali ulang
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./data:/app/data
       - ./credentials.json:/app/credentials.json:ro

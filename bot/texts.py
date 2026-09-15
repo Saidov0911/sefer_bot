@@ -79,6 +79,28 @@ BTN_PHONE = "📱 Raqamni yuborish"
 BTN_SUBMIT = "✅ Yuborish"
 BTN_RESTART = "🔄 Qaytadan to‘ldirish"
 
+STATUS_LABELS = {
+    "new": "🆕 Yangi",
+    "reviewing": "👀 Ko‘rib chiqilmoqda",
+    "accepted": "✅ Qabul qilindi",
+    "rejected": "❌ Rad etildi",
+}
+# Holat o'zgarganda foydalanuvchiga yuboriladigan xabarlar ("new" uchun xabar yo'q)
+STATUS_NOTIFY = {
+    "reviewing": "👀 Arizangiz ko‘rib chiqilmoqda. Natija haqida xabar beramiz.",
+    "accepted": "🎉 <b>Tabriklaymiz!</b> Arizangiz qabul qilindi. Tez orada siz bilan bog‘lanamiz.",
+    "rejected": (
+        "Afsuski, arizangiz bu safar qabul qilinmadi. Qiziqishingiz uchun rahmat! "
+        "Sefer kanalini kuzatib boring — yangi imkoniyatlar albatta bo‘ladi."
+    ),
+}
+AUDIENCE_LABELS = {
+    "all": "👥 Barcha foydalanuvchilar",
+    "applied": "📝 Ariza topshirganlar",
+    "not_applied": "⏳ Ariza topshirmaganlar",
+    **{status: f"{label} arizalar" for status, label in STATUS_LABELS.items()},
+}
+
 ADMIN_APPLICATION = (
     "🆕 <b>Yangi ariza</b>\n\n"
     "👤 <b>Ism familiya:</b> {full_name}\n"

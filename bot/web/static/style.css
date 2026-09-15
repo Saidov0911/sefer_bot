@@ -1,0 +1,206 @@
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --text: #1a1d23;
+  --muted: #6b7280;
+  --border: #e2e5e9;
+  --accent: #2563eb;
+  --accent-text: #ffffff;
+  --new: #2563eb;
+  --reviewing: #b45309;
+  --accepted: #15803d;
+  --rejected: #b91c1c;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --surface: #181b21;
+    --text: #e6e8eb;
+    --muted: #9aa1ab;
+    --border: #2a2f37;
+    --accent: #3b82f6;
+    --new: #60a5fa;
+    --reviewing: #fbbf24;
+    --accepted: #4ade80;
+    --rejected: #f87171;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1 { font-size: 22px; margin: 0 0 16px; }
+h2 { font-size: 15px; margin: 0 0 12px; }
+
+/* --- Yuqori panel --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 20px;
+  min-height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.brand { font-weight: 700; font-size: 16px; color: var(--text); white-space: nowrap; }
+.brand span { color: var(--muted); font-weight: 500; }
+.brand:hover { text-decoration: none; }
+.topbar nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.topbar nav a { padding: 6px 12px; border-radius: 8px; color: var(--muted); white-space: nowrap; }
+.topbar nav a:hover { background: var(--bg); color: var(--text); text-decoration: none; }
+.topbar nav a.active { background: var(--bg); color: var(--text); font-weight: 600; }
+.topbar form { margin: 0; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.page-head h1, .page-head h2 { margin: 0; }
+.back { display: inline-block; margin-bottom: 8px; }
+
+/* --- Kartalar --- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+a.card { color: inherit; }
+a.card:hover { text-decoration: none; border-color: var(--accent); }
+.grid { display: grid; gap: 16px; }
+.stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 16px; }
+.stat .label { color: var(--muted); font-size: 13px; }
+.stat .value { font-size: 28px; font-weight: 700; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.stat .sub { color: var(--muted); font-size: 12px; }
+.section { margin-top: 24px; }
+.stack > * + * { margin-top: 16px; }
+.detail { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); align-items: start; }
+@media (max-width: 860px) { .detail { grid-template-columns: 1fr; } }
+
+/* --- Jadvallar --- */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); font-weight: 600; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.empty { padding: 32px; text-align: center; color: var(--muted); }
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+
+/* --- Holat belgilari --- */
+.badge {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.badge-new { color: var(--new); }
+.badge-reviewing { color: var(--reviewing); }
+.badge-accepted { color: var(--accepted); }
+.badge-rejected { color: var(--rejected); }
+.badge-muted { color: var(--muted); }
+
+/* --- Filtrlar va qidiruv --- */
+.toolbar { display: flex; gap: 12px; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs a { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.tabs a:hover { text-decoration: none; border-color: var(--muted); }
+.tabs a.active { background: var(--text); border-color: var(--text); color: var(--bg); }
+.tabs .count { opacity: .6; margin-left: 4px; }
+.search { display: flex; gap: 8px; flex-wrap: wrap; }
+.search input { width: 280px; max-width: 100%; }
+
+/* --- Formalar --- */
+input[type=text], input[type=password], input[type=search], select, textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+textarea { width: 100%; min-height: 180px; resize: vertical; }
+select { max-width: 100%; }
+.field { margin-bottom: 16px; }
+.field > span { display: block; font-weight: 600; margin-bottom: 6px; }
+.check { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; cursor: pointer; }
+.radio-list label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.radio-list label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { text-decoration: none; border-color: var(--muted); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn-primary:hover { border-color: var(--accent); filter: brightness(1.08); }
+.btn-danger { color: var(--rejected); border-color: color-mix(in srgb, var(--rejected) 50%, transparent); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+button.link { background: none; border: none; color: var(--muted); font: inherit; cursor: pointer; padding: 6px; }
+button.link:hover { color: var(--text); }
+
+.pagination { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 16px; }
+
+.flash { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid; }
+.flash-ok { color: var(--accepted); background: color-mix(in srgb, var(--accepted) 10%, transparent); }
+.flash-error { color: var(--rejected); background: color-mix(in srgb, var(--rejected) 10%, transparent); }
+.flash-info { color: var(--new); background: color-mix(in srgb, var(--new) 10%, transparent); }
+.warn { border-color: color-mix(in srgb, var(--reviewing) 50%, transparent); }
+.warn strong { color: var(--reviewing); }
+
+/* --- Ariza sahifasi --- */
+dl.info { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+dl.info dt { color: var(--muted); }
+dl.info dd { margin: 0; overflow-wrap: anywhere; }
+.prose { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; margin: 0; }
+
+.progress { height: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin: 12px 0; }
+.progress > div { height: 100%; background: var(--accent); transition: width .3s; }
+
+/* --- Kirish --- */
+.login { max-width: 360px; margin: 12vh auto 0; }
+.login h1 { text-align: center; }
+.login label { display: block; margin-bottom: 12px; font-weight: 600; }
+.login input { width: 100%; margin-top: 6px; font-weight: 400; }
+.login .btn { width: 100%; justify-content: center; margin-top: 8px; }
