@@ -18,6 +18,8 @@
     <a href="/users" class="{{ 'active' if path.startswith('/users') }}">Foydalanuvchilar</a>
     {% if user.is_admin %}
     <a href="/broadcast" class="{{ 'active' if path.startswith('/broadcast') }}">Ommaviy xabar</a>
+    {% endif %}
+    {% if user.from_env %}
     <a href="/settings/admins" class="{{ 'active' if path.startswith('/settings/admins') }}">Hisoblar</a>
     {% endif %}
   </nav>

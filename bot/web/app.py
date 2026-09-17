@@ -183,6 +183,13 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             raise Forbidden
         return user
 
+    async def load_owner(request: Request) -> CurrentUser:
+        """Hisoblarni faqat .env dagi asosiy hisob boshqaradi."""
+        user = await load_user(request)
+        if not user.from_env:
+            raise Forbidden
+        return user
+
     # --- Panel (faqat kirganlar uchun) ---
 
     panel = APIRouter(dependencies=[Depends(load_user)])
@@ -342,15 +349,15 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         flash(request, "Tarqatma to'xtatilmoqda.", "info")
         return RedirectResponse("/broadcast", status_code=303)
 
-    # --- Hisoblar (faqat to'liq admin) ---
+    # --- Hisoblar (faqat .env dagi asosiy hisob) ---
 
-    @panel.get("/settings/admins", dependencies=[Depends(load_admin)])
+    @panel.get("/settings/admins", dependencies=[Depends(load_owner)])
     async def admins_page(request: Request):
         return render(request, "admins.html", accounts=await db.list_admin_users())
 
     @panel.post("/settings/admins", dependencies=[Depends(verify_csrf)])
     async def admin_create(
-        request: Request, user: CurrentUser = Depends(load_admin),
+        request: Request, user: CurrentUser = Depends(load_owner),
         username: str = Form(""), password: str = Form(""), role: str = Form("viewer"),
     ):
         username = username.strip().lower()
@@ -366,7 +373,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
     @panel.post("/settings/admins/{account_id}/password", dependencies=[Depends(verify_csrf)])
     async def admin_reset_password(
-        request: Request, account_id: int, user: CurrentUser = Depends(load_admin), password: str = Form(""),
+        request: Request, account_id: int, user: CurrentUser = Depends(load_owner), password: str = Form(""),
     ):
         if error := auth.check_password(password):
             flash(request, error, "error")
@@ -379,11 +386,9 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
     @panel.post("/settings/admins/{account_id}/role", dependencies=[Depends(verify_csrf)])
     async def admin_set_role(
-        request: Request, account_id: int, user: CurrentUser = Depends(load_admin), role: str = Form(""),
+        request: Request, account_id: int, user: CurrentUser = Depends(load_owner), role: str = Form(""),
     ):
-        if user.user_id == account_id:
-            flash(request, "O'z rolingizni o'zgartira olmaysiz.", "error")
-        elif error := auth.check_role(role):
+        if error := auth.check_role(role):
             flash(request, error, "error")
         elif not await db.set_admin_role(account_id, role):
             flash(request, "Hisob topilmadi.", "error")
@@ -393,10 +398,8 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         return RedirectResponse("/settings/admins", status_code=303)
 
     @panel.post("/settings/admins/{account_id}/delete", dependencies=[Depends(verify_csrf)])
-    async def admin_delete(request: Request, account_id: int, user: CurrentUser = Depends(load_admin)):
-        if user.user_id == account_id:
-            flash(request, "O'z hisobingizni o'chira olmaysiz.", "error")
-        elif not await db.delete_admin_user(account_id):
+    async def admin_delete(request: Request, account_id: int, user: CurrentUser = Depends(load_owner)):
+        if not await db.delete_admin_user(account_id):
             flash(request, "Hisob topilmadi.", "error")
         else:
             log.info("Web panel: %s #%s hisobini o'chirdi", user.username, account_id)

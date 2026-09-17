@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Ruxsat yo‘q{% endblock %}
 {% block content %}
-<div class="card" style="max-width: 520px">
+<div class="card" style="max-width: 560px">
   <h1>Ruxsat yo‘q</h1>
-  <p>Bu bo‘lim faqat to‘liq adminlar uchun. Sizning rolingiz — <strong>ko‘ruvchi</strong>.</p>
-  <p class="hint">Kerak bo‘lsa, to‘liq admin «Hisoblar» bo‘limidan rolingizni o‘zgartirib bera oladi.</p>
+  <p>Bu bo‘lim sizga ochiq emas.</p>
+  <dl class="info">
+    <dt>Ommaviy xabar</dt>
+    <dd>To‘liq admin rolidagilar uchun.</dd>
+    <dt>Hisoblar</dt>
+    <dd>Faqat <code>.env</code> dagi asosiy hisob uchun.</dd>
+  </dl>
   <div class="actions"><a class="btn btn-primary" href="/">Bosh sahifaga</a></div>
 </div>
 {% endblock %}

@@ -72,12 +72,13 @@ foydalanuvchilar ro'yxati va matnli ommaviy xabar (avval adminlarga sinab ko'ris
 **Hisoblar va rollar.** `.env` dagi `ADMIN_USERNAME`/`ADMIN_PASSWORD` — asosiy hisob (uni paneldan o'chirib bo'lmaydi).
 Qolgan xodimlarga hisob panel ichida **«Hisoblar»** bo'limidan ochiladi, parollar bazada `scrypt` bilan hashlab saqlanadi:
 
-| Rol | Nima qila oladi |
+| Kim | Nima qila oladi |
 |---|---|
-| To'liq admin | Hammasi: ommaviy xabar, hisoblarni boshqarish, `/sync` |
+| Asosiy hisob (`.env`) | Hammasi, shu jumladan **«Hisoblar»** bo'limi — hisob qo'shish, rol berish, parol tiklash, o'chirish |
+| To'liq admin | Ommaviy xabar, `/sync` va ko'ruvchining hamma imkoniyatlari. Hisoblarga tegа olmaydi |
 | Ko'ruvchi | Arizalar va foydalanuvchilarni ko'radi, holat qo'yadi, CV va CSV yuklaydi |
 
-Har kim o'z parolini yuqoridagi o'z logini orqali o'zgartira oladi; unutilgan parolni to'liq admin tiklaydi.
+Har kim o'z parolini yuqoridagi o'z logini orqali o'zgartira oladi; unutilgan parolni asosiy hisob tiklaydi.
 Hisob o'chirilsa yoki roli o'zgarsa, bu o'sha odamning ochiq sessiyasiga ham darhol ta'sir qiladi.
 
 - `WEB_SECRET_KEY` ni albatta bering — aks holda har restartda qayta kirish kerak bo'ladi.

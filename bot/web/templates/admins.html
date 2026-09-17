@@ -18,14 +18,14 @@
       </tr>
       {% for a in accounts %}
       <tr>
-        <td><strong>{{ a.username }}</strong>{% if user.user_id == a.id %} <span class="muted">(siz)</span>{% endif %}</td>
+        <td><strong>{{ a.username }}</strong></td>
         <td>
           <form method="post" action="/settings/admins/{{ a.id }}/role" class="inline-form">
             <input type="hidden" name="csrf" value="{{ csrf }}">
-            <select name="role" {{ 'disabled' if user.user_id == a.id }}>
+            <select name="role">
               {% for r in ROLES %}<option value="{{ r }}" {{ 'selected' if a.role == r }}>{{ ROLE_LABELS[r] }}</option>{% endfor %}
             </select>
-            <button class="btn" {{ 'disabled' if user.user_id == a.id }}>Saqlash</button>
+            <button class="btn">Saqlash</button>
           </form>
         </td>
         <td class="muted">{{ a.created_at | local_time }}</td>
@@ -40,7 +40,7 @@
             <form method="post" action="/settings/admins/{{ a.id }}/delete" class="inline-form"
                   onsubmit="return confirm('«{{ a.username }}» hisobi o‘chirilsinmi?')">
               <input type="hidden" name="csrf" value="{{ csrf }}">
-              <button class="btn btn-danger" {{ 'disabled' if user.user_id == a.id }}>O‘chirish</button>
+              <button class="btn btn-danger">O‘chirish</button>
             </form>
           </div>
         </td>
@@ -76,13 +76,14 @@
     <h2>Rollar nima qila oladi</h2>
     <dl class="info">
       <dt>To‘liq admin</dt>
-      <dd>Hamma narsa: ommaviy xabar, hisoblarni boshqarish, yetkazilmagan arizalarni qayta yuborish.</dd>
+      <dd>Ommaviy xabar, yetkazilmagan arizalarni qayta yuborish va ko‘ruvchining hamma imkoniyatlari.</dd>
       <dt>Ko‘ruvchi</dt>
       <dd>Arizalar va foydalanuvchilarni ko‘radi, holat qo‘yadi, CV va CSV yuklab oladi. Ommaviy xabar yubora olmaydi.</dd>
     </dl>
     <p class="hint">
-      Parol unutilsa, to‘liq admin uni shu sahifadan tiklaydi. Asosiy hisob paroli <code>.env</code> dagi
-      <code>ADMIN_PASSWORD</code> orqali o‘zgartiriladi.
+      Bu sahifa faqat sizga — <code>.env</code> dagi <strong>{{ ADMIN_USERNAME }}</strong> hisobiga ko‘rinadi.
+      Boshqa adminlar, hatto to‘liq rol bilan ham, hisob qo‘sha yoki o‘chira olmaydi.
+      Unutilgan parolni shu yerdan tiklaysiz; o‘z parolingiz esa <code>ADMIN_PASSWORD</code> orqali o‘zgaradi.
     </p>
   </div>
 </div>
