@@ -108,7 +108,9 @@ WEB_HTTPS_ONLY=true
 
 ```bash
 docker compose up -d --build
-curl -I http://127.0.0.1:8080/login   # HTTP/1.1 200 OK
+# 200 chiqishi kerak (WEB_PORT o'zgartirilgan bo'lsa, portni ham almashtiring).
+# curl -I ishlatmang: u HEAD so'rovi yuboradi va panel 405 qaytaradi — bu xato emas
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/login
 ```
 
 **3. nginx va certbot.**

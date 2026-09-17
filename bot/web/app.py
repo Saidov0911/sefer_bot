@@ -125,8 +125,13 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
     @app.get("/login")
     async def login_page(request: Request, next: str = "/"):
-        if request.session.get("admin"):
+        try:
+            auth.current_user(request)
             return RedirectResponse(_safe_next(next), status_code=303)
+        except LoginRequired:
+            # Eskirgan sessiya (masalan, rollar qo'shilishidan oldingi cookie) — tozalaymiz,
+            # aks holda panel bilan login sahifasi bir-biriga cheksiz yo'naltiraveradi
+            request.session.clear()
         return render(request, "login.html", next=next)
 
     @app.post("/login", dependencies=[Depends(verify_csrf)])
