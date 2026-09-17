@@ -42,14 +42,16 @@
     <strong>Yetkazilmagan arizalar bor.</strong>
     Guruhga yetib bormagan: {{ stats.not_in_group }}{% if sheets_enabled %} · Sheets'ga yozilmagan: {{ stats.not_in_sheet }}{% endif %}
   </div>
+  {% if user.is_admin %}
   <form method="post" action="/sync">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <button class="btn">🔄 Qayta yuborish</button>
   </form>
+  {% endif %}
 </div>
 {% endif %}
 
-{% if job and job.running %}
+{% if job and job.running and user.is_admin %}
 <a class="card section" href="/broadcast" style="display:block">
   <strong>📢 Tarqatma davom etmoqda</strong> — {{ job.done }} / {{ job.total }} ({{ job.percent }}%)
   <div class="progress"><div style="width: {{ job.percent }}%"></div></div>

@@ -69,14 +69,90 @@ Ikki xil panel bor, ikkalasi ham bir xil ma'lumot bilan ishlaydi.
 bosh sahifa (statistika), arizalar (filtr, qidiruv, CSV, CV yuklab olish, holatni o'zgartirish),
 foydalanuvchilar ro'yxati va matnli ommaviy xabar (avval adminlarga sinab ko'rish mumkin).
 
+**Hisoblar va rollar.** `.env` dagi `ADMIN_USERNAME`/`ADMIN_PASSWORD` — asosiy hisob (uni paneldan o'chirib bo'lmaydi).
+Qolgan xodimlarga hisob panel ichida **«Hisoblar»** bo'limidan ochiladi, parollar bazada `scrypt` bilan hashlab saqlanadi:
+
+| Rol | Nima qila oladi |
+|---|---|
+| To'liq admin | Hammasi: ommaviy xabar, hisoblarni boshqarish, `/sync` |
+| Ko'ruvchi | Arizalar va foydalanuvchilarni ko'radi, holat qo'yadi, CV va CSV yuklaydi |
+
+Har kim o'z parolini yuqoridagi o'z logini orqali o'zgartira oladi; unutilgan parolni to'liq admin tiklaydi.
+Hisob o'chirilsa yoki roli o'zgarsa, bu o'sha odamning ochiq sessiyasiga ham darhol ta'sir qiladi.
+
 - `WEB_SECRET_KEY` ni albatta bering — aks holda har restartda qayta kirish kerak bo'ladi.
-- Docker'da panel faqat `127.0.0.1:8080` da ochiladi. Serverdan tashqariga **HTTPS orqali** chiqaring
-  (masalan, Caddy: `admin.example.uz { reverse_proxy 127.0.0.1:8080 }`) va `WEB_HTTPS_ONLY=true` qiling.
+- Panel faqat `127.0.0.1:8080` da ochiladi. Domen orqali ochish — quyidagi **Domen va HTTPS (nginx)** bo'limida.
   Paroli bor panelni oddiy HTTP orqali ochiq qoldirmang.
 - 10 daqiqada 5 marta noto'g'ri parol kiritilsa, shu IP vaqtincha bloklanadi.
 
 Arizalar holati bazada saqlanadi (eski bazaga ustunlar bot ishga tushganda avtomatik qo'shiladi);
 Google Sheets'dagi qatorlar holat o'zgarganda yangilanmaydi.
+
+### Domen va HTTPS (nginx)
+
+Ubuntu/Debian serverda, bot Docker'da ishlayotgan holat uchun. Quyida `admin.example.uz` o'rniga o'z domeningizni yozing.
+
+**1. DNS.** Domen panelida `A` yozuv qo'shing: `admin.example.uz → serverning IP manzili`. Tarqalishini tekshiring:
+
+```bash
+dig +short admin.example.uz   # server IP'sini ko'rsatishi kerak
+```
+
+**2. Bot.** `.env` da:
+
+```env
+ADMIN_PASSWORD=kuchli-parol
+WEB_SECRET_KEY=...        # python3 -c "import secrets; print(secrets.token_hex(32))"
+WEB_HTTPS_ONLY=true
+```
+
+```bash
+docker compose up -d --build
+curl -I http://127.0.0.1:8080/login   # HTTP/1.1 200 OK
+```
+
+**3. nginx va certbot.**
+
+```bash
+sudo apt update && sudo apt install -y nginx certbot python3-certbot-nginx
+sudo ufw allow 'Nginx Full'   # 80 va 443. 8080 portni OCHMANG
+```
+
+**4. Sertifikat** (nginx konfiguratsiyasidan oldin — u sertifikat fayllariga tayanadi):
+
+```bash
+sudo certbot certonly --nginx -d admin.example.uz --deploy-hook "systemctl reload nginx"
+```
+
+**5. nginx konfiguratsiyasi** (loyiha papkasidan):
+
+```bash
+DOMAIN=admin.example.uz
+sudo cp deploy/nginx/sefer-admin.conf /etc/nginx/sites-available/sefer-admin.conf
+sudo sed -i "s/admin\.example\.uz/$DOMAIN/g" /etc/nginx/sites-available/sefer-admin.conf
+sudo ln -s /etc/nginx/sites-available/sefer-admin.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**6. Tekshirish.** `https://admin.example.uz` login sahifasini ochishi kerak. Sertifikat 90 kunda avtomatik yangilanadi,
+buni sinab ko'rish:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+**Muammolar:**
+
+| Belgi | Sabab |
+|---|---|
+| `502 Bad Gateway` | Bot ishlamayapti, `ADMIN_PASSWORD` bo'sh yoki nginx'dagi `proxy_pass` porti `WEB_PORT` ga mos emas: `docker compose logs bot \| grep -i web` |
+| `Bind for 127.0.0.1:8080 failed: port is already allocated` | Port band. Kim band qilganini ko'ring: `sudo lsof -i :8080` va `docker ps`. Eski konteyner bo'lsa `docker compose down` qiling (ikkita bot bir vaqtda ishlasa, Telegram 409 xatosi chiqadi). Boshqa dastur bo'lsa `.env` da `WEB_PORT` ni o'zgartiring va `proxy_pass` ni ham moslang |
+| Kirgach yana login sahifasiga qaytaradi | `WEB_HTTPS_ONLY=true`, lekin sayt `http://` orqali ochilgan — `https://` dan kiring |
+| Har restartdan keyin qayta kirish kerak | `WEB_SECRET_KEY` berilmagan |
+| `certbot` domen tekshiruvidan o'tmaydi | DNS hali tarqalmagan yoki 80-port yopiq |
+| `nginx -t`: `cannot load certificate` | 4-qadam bajarilmagan yoki domen nomi `sed` da noto'g'ri yozilgan |
+
+CentOS/RHEL'da `sites-available` o'rniga faylni `/etc/nginx/conf.d/sefer-admin.conf` ga qo'ying.
 
 ## Tuzilma
 

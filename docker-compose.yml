@@ -7,9 +7,15 @@ services:
       REDIS_URL: redis://redis:6379/0
       DB_PATH: /app/data/bot.db
       GOOGLE_CREDENTIALS_FILE: /app/credentials.json
+      WEB_HOST: 0.0.0.0
+      # Port faqat 127.0.0.1 ga ochiq, ya'ni konteynerga faqat serverdagi nginx ulanadi
+      # (Docker gateway IP'si orqali). nginx X-Forwarded-For ni almashtirib yozadi.
+      WEB_FORWARDED_ALLOW_IPS: "*"
     ports:
-      # Web admin panel. Faqat serverning o'zidan ochiladi — tashqaridan nginx/Caddy (HTTPS) orqali ulang
-      - "127.0.0.1:8080:8080"
+      # Web admin panel. Faqat serverning o'zidan ochiladi — tashqaridan nginx (HTTPS) orqali: deploy/nginx/
+      # Port band bo'lsa .env dagi WEB_PORT ni o'zgartiring (bu faylni tahrirlash shart emas),
+      # so'ng nginx dagi proxy_pass ni ham o'sha portga moslang
+      - "127.0.0.1:${WEB_PORT:-8080}:${WEB_PORT:-8080}"
     volumes:
       - ./data:/app/data
       - ./credentials.json:/app/credentials.json:ro

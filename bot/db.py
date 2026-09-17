@@ -7,6 +7,8 @@ import aiosqlite
 STATUSES = ("new", "reviewing", "accepted", "rejected")
 # Ommaviy xabar auditoriyalari (yorliqlar: texts.AUDIENCE_LABELS)
 AUDIENCES = ("all", "applied", "not_applied", *STATUSES)
+# Web panel rollari (bot/web/auth.py)
+ROLES = ("admin", "viewer")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -33,6 +35,16 @@ CREATE TABLE IF NOT EXISTS applications (
     status            TEXT NOT NULL DEFAULT 'new',
     status_updated_at TEXT,
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Web panel hisoblari (.env dagi asosiy hisobdan tashqari)
+CREATE TABLE IF NOT EXISTS admin_users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'viewer',
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    last_login_at TEXT
 );
 """
 
@@ -64,6 +76,16 @@ class Application:
     created_at: str | None = None
     username: str | None = None
     referrals: int = 0
+
+
+@dataclass
+class AdminUser:
+    id: int
+    username: str
+    role: str
+    created_at: str
+    last_login_at: str | None
+    password_hash: str = ""
 
 
 @dataclass
@@ -217,6 +239,65 @@ class Database:
             raise ValueError(f"Noma'lum auditoriya: {audience}")
         cur = await self.conn.execute(sql, params)
         return [r[0] for r in await cur.fetchall()]
+
+    # --- web panel hisoblari ---
+
+    @staticmethod
+    def _admin_user(row: aiosqlite.Row) -> AdminUser:
+        return AdminUser(
+            id=row["id"], username=row["username"], role=row["role"], created_at=row["created_at"],
+            last_login_at=row["last_login_at"], password_hash=row["password_hash"],
+        )
+
+    async def admin_user(self, username: str) -> AdminUser | None:
+        cur = await self.conn.execute("SELECT * FROM admin_users WHERE username = ?", (username,))
+        row = await cur.fetchone()
+        return self._admin_user(row) if row else None
+
+    async def admin_user_by_id(self, account_id: int) -> AdminUser | None:
+        cur = await self.conn.execute("SELECT * FROM admin_users WHERE id = ?", (account_id,))
+        row = await cur.fetchone()
+        return self._admin_user(row) if row else None
+
+    async def list_admin_users(self) -> list[AdminUser]:
+        cur = await self.conn.execute("SELECT * FROM admin_users ORDER BY created_at")
+        return [self._admin_user(r) for r in await cur.fetchall()]
+
+    async def create_admin_user(self, username: str, password_hash: str, role: str) -> bool:
+        """Qaytaradi: yaratildimi (False — bunday login band)."""
+        if role not in ROLES:
+            raise ValueError(f"Noma'lum rol: {role}")
+        cur = await self.conn.execute(
+            "INSERT OR IGNORE INTO admin_users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, password_hash, role),
+        )
+        await self.conn.commit()
+        return cur.rowcount == 1
+
+    async def set_admin_password(self, account_id: int, password_hash: str) -> bool:
+        cur = await self.conn.execute(
+            "UPDATE admin_users SET password_hash = ? WHERE id = ?", (password_hash, account_id)
+        )
+        await self.conn.commit()
+        return cur.rowcount == 1
+
+    async def set_admin_role(self, account_id: int, role: str) -> bool:
+        if role not in ROLES:
+            raise ValueError(f"Noma'lum rol: {role}")
+        cur = await self.conn.execute("UPDATE admin_users SET role = ? WHERE id = ?", (role, account_id))
+        await self.conn.commit()
+        return cur.rowcount == 1
+
+    async def delete_admin_user(self, account_id: int) -> bool:
+        cur = await self.conn.execute("DELETE FROM admin_users WHERE id = ?", (account_id,))
+        await self.conn.commit()
+        return cur.rowcount == 1
+
+    async def touch_admin_login(self, account_id: int) -> None:
+        await self.conn.execute(
+            "UPDATE admin_users SET last_login_at = datetime('now') WHERE id = ?", (account_id,)
+        )
+        await self.conn.commit()
 
     # --- applications ---
 

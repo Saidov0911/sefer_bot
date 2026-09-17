@@ -64,6 +64,12 @@ h2 { font-size: 15px; margin: 0 0 12px; }
 .topbar nav a:hover { background: var(--bg); color: var(--text); text-decoration: none; }
 .topbar nav a.active { background: var(--bg); color: var(--text); font-weight: 600; }
 .topbar form { margin: 0; }
+.topbar-user { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.topbar-user > a { color: var(--text); font-weight: 600; }
+
+.inline-form { display: flex; gap: 6px; align-items: center; margin: 0; }
+.inline-form input[type=password] { width: 150px; }
+.row-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 

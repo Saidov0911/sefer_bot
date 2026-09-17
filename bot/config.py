@@ -32,8 +32,10 @@ class Settings(BaseSettings):
     # Web admin panel (ADMIN_PASSWORD bo'sh bo'lsa o'chirilgan)
     admin_username: str = "admin"
     admin_password: str | None = None
-    web_host: str = "0.0.0.0"
+    web_host: str = "127.0.0.1"  # Docker ichida 0.0.0.0 (docker-compose.yml)
     web_port: int = 8080
+    # X-Forwarded-For ga ishoniladigan proxy manzillari (nginx). Docker'da "*" (docker-compose.yml)
+    web_forwarded_allow_ips: str = "127.0.0.1"
     web_secret_key: str | None = None  # bo'sh bo'lsa har restartda sessiyalar bekor bo'ladi
     web_https_only: bool = False  # HTTPS orqasida ishlaganda True qiling
 
