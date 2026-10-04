@@ -12,6 +12,22 @@ Sefer loyihasiga ariza qabul qiluvchi Telegram bot (Python 3.12+, aiogram 3).
 
 Yuborilgan ariza admin guruhiga (CV fayli + esse) va Google Sheets'ga yoziladi. Har bir foydalanuvchi bitta ariza topshira oladi.
 
+## Paneldagi sayt bo'limlari
+
+Web panel butun loyiha uchun: bot bo'limlaridan tashqari, **Sayt** guruhida sefer.uz ma'lumotlari ko'rinadi.
+Ular Sefer backend'ining admin API'sidan olinadi (`/api/v1/admin`, `SEFER_API_URL` va `SEFER_API_TOKEN` bilan —
+kirish kodi uchun ishlatiladigan o'sha sozlamalar; berilmasa bu bo'limlar ko'rinmaydi).
+
+| Bo'lim | Nima ko'rsatadi | Kim o'zgartira oladi |
+|---|---|---|
+| **Hisoblar** | Telegram kodi bilan saytga kirganlar; qidiruv | — |
+| **Do'konlar** | Har bir do'kon bo'yicha takliflar va sotuvda borlari; o'qish jurnali (qachon, nechta, xatolar) | — |
+| **Juftliklar** | Nomi o'xshash, lekin birlashtirilmagan asarlar | To'liq admin: «Bir asar» / «Boshqa asar», ro'yxatni qayta hisoblash |
+| **Bandlovlar** | Sayt orqali band qilingan kitoblar | — |
+
+Bosh sahifada sayt ko'rsatkichlari ham chiqadi. Backend javob bermasa, bot bo'limlari ishlayveradi,
+sayt bo'limlarida esa xato xabari ko'rsatiladi.
+
 ## Ariza qabul qilishni ochish va yopish
 
 Web panelning bosh sahifasida **«Ariza qabul qilish: ochiq / yopiq»** bloki bor; to'liq admin uni bir tugma bilan

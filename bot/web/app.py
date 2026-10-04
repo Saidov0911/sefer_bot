@@ -22,10 +22,12 @@ from starlette.middleware.sessions import SessionMiddleware
 from bot import texts
 from bot.config import settings
 from bot.db import AUDIENCES, ROLES, STATUSES, Database
+from bot.services import sefer_admin
 from bot.services.broadcast import Broadcaster
 from bot.services.delivery import admin_message_link, deliver_pending
 from bot.services.export import applications_csv
 from bot.services.sheets import Sheets
+from bot.services.sefer_admin import SiteApiError
 from bot.services.status import change_status
 from bot.utils import TASHKENT, local_time
 from bot.web import auth
@@ -35,6 +37,7 @@ log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 PAGE_SIZE = 25
+REVIEW_PAGE_SIZE = 10  # shubhali juftliklar: har biri ikkita asar kartasi
 LOGIN_MAX_FAILS = 5
 LOGIN_WINDOW = 600  # soniya
 TG_TEXT_LIMIT = 4096
@@ -50,12 +53,33 @@ def url_with(request: Request, **params) -> str:
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 templates.env.filters["local_time"] = local_time
+
+
+def iso_time(value: str | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
+    """Sayt API'sidan kelgan vaqtni (RFC 3339) Toshkent vaqtida ko'rsatadi."""
+    if not value:
+        return ""
+    try:
+        return datetime.fromisoformat(value).astimezone(TASHKENT).strftime(fmt)
+    except ValueError:
+        return value
+
+
+def money(value: int | None) -> str:
+    return f"{value:,}".replace(",", " ") + " so‘m" if value is not None else "—"
+
+
+templates.env.filters["iso_time"] = iso_time
+templates.env.filters["money"] = money
 templates.env.filters["dt"] = lambda d: d.astimezone(TASHKENT).strftime("%Y-%m-%d %H:%M:%S") if d else ""
 templates.env.globals.update(
     STATUSES=STATUSES, STATUS_LABELS=texts.STATUS_LABELS,
     AUDIENCES=AUDIENCES, AUDIENCE_LABELS=texts.AUDIENCE_LABELS,
     ROLES=ROLES, ROLE_LABELS=ROLE_LABELS, ADMIN_USERNAME=settings.admin_username,
-    url_with=url_with,
+    url_with=url_with, SITE_ENABLED=settings.login_enabled, SITE_URL=settings.site_origin,
+    LANGUAGES={"uz": "O‘zbek", "ru": "Rus", "en": "Ingliz"},
+    RUN_STATUS={"ok": "tugadi", "failed": "xato", "running": "ketmoqda"},
+    BOOKING_STATUS={"pending": "kutilmoqda", "confirmed": "tasdiqlangan", "expired": "muddati o‘tgan", "cancelled": "bekor qilingan"},
 )
 
 
@@ -194,6 +218,16 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
     panel = APIRouter(dependencies=[Depends(load_user)])
 
+    async def site_stats() -> dict | None:
+        """Bosh sahifa uchun sayt ko'rsatkichlari; sayt sozlanmagan yoki javob bermasa None."""
+        if not settings.login_enabled:
+            return None
+        try:
+            return await sefer_admin.stats()
+        except SiteApiError as e:
+            log.warning("Sayt statistikasi olinmadi: %s", e)
+            return None
+
     @panel.get("/")
     async def dashboard(request: Request):
         return render(
@@ -204,6 +238,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             job=broadcaster.job,
             sheets_enabled=sheets is not None,
             applications_open=await db.applications_open(),
+            site=await site_stats(),
         )
 
     @panel.post("/settings/applications", dependencies=[Depends(verify_csrf)])
@@ -301,6 +336,65 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         )
 
     # --- Ommaviy xabar (faqat to'liq admin) ---
+
+    # --- Sayt (sefer.uz): ma'lumot Sefer backend'ining admin API'sidan olinadi ---
+
+    async def site_page(request: Request, template: str, fetch, **context) -> Response:
+        """fetch() natijasini shablonga beradi; API ishlamasa sahifa xato xabari bilan ochiladi."""
+        try:
+            data = await fetch()
+            error = None
+        except SiteApiError as e:
+            data, error = None, str(e)
+        return render(request, template, data=data, error=error, **context)
+
+    @panel.get("/site/users")
+    async def site_users(request: Request, q: str = "", page: int = 1):
+        page = max(page, 1)
+        return await site_page(
+            request, "site_users.html", lambda: sefer_admin.users(q, page, PAGE_SIZE), q=q, page=page,
+        )
+
+    @panel.get("/site/shops")
+    async def site_shops(request: Request):
+        return await site_page(request, "site_shops.html", sefer_admin.shops)
+
+    @panel.get("/site/bookings")
+    async def site_bookings(request: Request, page: int = 1):
+        page = max(page, 1)
+        return await site_page(
+            request, "site_bookings.html", lambda: sefer_admin.bookings(page, PAGE_SIZE), page=page,
+        )
+
+    @panel.get("/site/reviews")
+    async def site_reviews(request: Request, page: int = 1):
+        page = max(page, 1)
+        return await site_page(
+            request, "site_reviews.html", lambda: sefer_admin.reviews(page, REVIEW_PAGE_SIZE), page=page,
+            page_size=REVIEW_PAGE_SIZE,
+        )
+
+    @panel.post("/site/reviews/refresh", dependencies=[Depends(verify_csrf)])
+    async def site_reviews_refresh(request: Request, user: CurrentUser = Depends(load_admin)):
+        try:
+            result = await sefer_admin.refresh_reviews()
+            flash(request, f"Ro'yxat qayta hisoblandi: {result['pending']} ta juftlik.")
+        except SiteApiError as e:
+            flash(request, str(e), "error")
+        return RedirectResponse("/site/reviews", status_code=303)
+
+    @panel.post("/site/reviews/{review_id}", dependencies=[Depends(verify_csrf)])
+    async def site_review_decide(
+        request: Request, review_id: int, user: CurrentUser = Depends(load_admin),
+        verdict: str = Form(""), page: int = Form(1),
+    ):
+        try:
+            await sefer_admin.decide_review(review_id, verdict)
+            log.info("Web panel: %s #%s juftlikka «%s» qarorini berdi", user.username, review_id, verdict)
+            flash(request, "Asarlar birlashtirildi." if verdict == "same" else "Juftlik «boshqa asar» deb belgilandi.")
+        except SiteApiError as e:
+            flash(request, str(e), "error")
+        return RedirectResponse(f"/site/reviews?page={max(page, 1)}", status_code=303)
 
     async def broadcast_page(request: Request, audience: str = "all", text: str = "", **context) -> Response:
         return render(

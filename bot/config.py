@@ -1,5 +1,6 @@
 from functools import cached_property
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -39,7 +40,8 @@ class Settings(BaseSettings):
     web_secret_key: str | None = None  # bo'sh bo'lsa har restartda sessiyalar bekor bo'ladi
     web_https_only: bool = False  # HTTPS orqasida ishlaganda True qiling
 
-    # Sefer saytiga kirish kodi (SEFER_API_URL yoki SEFER_API_TOKEN bo'sh bo'lsa o'chirilgan)
+    # Sefer sayti: kirish kodi va paneldagi sayt bo'limlari
+    # (SEFER_API_URL yoki SEFER_API_TOKEN bo'sh bo'lsa o'chirilgan)
     sefer_api_url: str | None = None  # masalan http://localhost:8081
     sefer_api_token: str | None = None  # backend'dagi BOT_API_TOKEN bilan bir xil
     site_url: str | None = None  # kod kiritiladigan sahifa, masalan https://sefer.uz/kirish
@@ -51,6 +53,12 @@ class Settings(BaseSettings):
     @property
     def sheets_enabled(self) -> bool:
         return bool(self.google_credentials_file and self.google_sheet_id)
+
+    @property
+    def site_origin(self) -> str:
+        """Sayt manzili yo'lsiz: "https://sefer.uz/kirish" -> "https://sefer.uz"."""
+        parts = urlsplit(self.site_url or "")
+        return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else ""
 
     @property
     def login_enabled(self) -> bool:

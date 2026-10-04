@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_site.html" import api_error, pager %}
+{% block title %}Sayt hisoblari{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Sayt hisoblari {% if data %}<span class="muted">({{ data.total }})</span>{% endif %}</h1>
+  <form class="search" method="get" action="/site/users">
+    <input type="search" name="q" value="{{ q }}" placeholder="Ism, @username, telefon yoki Telegram ID">
+    <button class="btn">Qidirish</button>
+    {% if q %}<a class="btn" href="/site/users">Tozalash</a>{% endif %}
+  </form>
+</div>
+<p class="muted">Telegram bot bergan kod bilan saytga kirganlar.</p>
+{{ api_error(error) }}
+
+{% if data %}
+<div class="table-wrap">
+  {% if data.users %}
+  <table>
+    <thead><tr><th>Ro‘yxatdan o‘tgan</th><th>Ism</th><th>Username</th><th>Telefon</th><th>Telegram ID</th><th>Oxirgi kirish</th></tr></thead>
+    <tbody>
+    {% for u in data.users %}
+      <tr>
+        <td class="muted">{{ u.createdAt | iso_time }}</td>
+        <td>{{ (u.firstName ~ " " ~ u.lastName).strip() or "—" }}</td>
+        <td>{% if u.username %}<a href="https://t.me/{{ u.username }}" target="_blank" rel="noopener">@{{ u.username }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{{ u.phone }}</td>
+        <td><a href="/users?q={{ u.telegramId }}">{{ u.telegramId }}</a></td>
+        <td class="muted">{{ u.lastLoginAt | iso_time }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Hech kim topilmadi.</div>
+  {% endif %}
+</div>
+{{ pager(request, page, data.total, data.limit) }}
+{% endif %}
+{% endblock %}

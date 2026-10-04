@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_site.html" import api_error %}
+{% block title %}Do‘konlar{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Do‘konlar</h1></div>
+{{ api_error(error) }}
+
+{% if data %}
+<div class="table-wrap">
+  {% if data.shops %}
+  <table>
+    <thead>
+      <tr><th>Do‘kon</th><th>Manba</th><th class="num">Filiallar</th><th class="num">Takliflar</th><th class="num">Sotuvda bor</th><th>Yetkazish</th><th>Oxirgi ko‘rilgan</th></tr>
+    </thead>
+    <tbody>
+    {% for s in data.shops %}
+      <tr>
+        <td>{% if s.website %}<a href="{{ s.website }}" target="_blank" rel="noopener">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</td>
+        <td>{% if s.sourceKey %}<span class="badge badge-accepted">avtomatik · {{ s.sourceKey }}</span>{% else %}<span class="badge badge-muted">qo‘lda</span>{% endif %}</td>
+        <td class="num">{{ s.branches }}</td>
+        <td class="num">{{ s.offers }}</td>
+        <td class="num">{{ s.inStock }}</td>
+        <td>{% if s.deliveryFee is not none %}{{ s.deliveryFee | money }}{% else %}<span class="muted">ma’lumot yo‘q</span>{% endif %}</td>
+        <td class="muted">{{ s.lastSeenAt | iso_time or "—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Hozircha do‘kon yo‘q.</div>
+  {% endif %}
+</div>
+
+<div class="section">
+  <div class="page-head"><h2>O‘qish jurnali</h2><span class="muted">oxirgi {{ data.runs | length }} ta yurish</span></div>
+  <div class="table-wrap">
+    {% if data.runs %}
+    <table>
+      <thead>
+        <tr><th>Boshlangan</th><th>Tugagan</th><th>Manba</th><th>Holat</th><th class="num">Saqlandi</th><th class="num">O‘tkazib yuborildi</th><th class="num">Xato</th><th class="num">Yo‘qolgan</th><th>Xato matni</th></tr>
+      </thead>
+      <tbody>
+      {% for r in data.runs %}
+        <tr>
+          <td class="muted">{{ r.startedAt | iso_time }}</td>
+          <td class="muted">{{ r.finishedAt | iso_time or "—" }}</td>
+          <td>{{ r.sourceKey }}</td>
+          <td><span class="badge badge-{{ {'ok': 'accepted', 'failed': 'rejected'}.get(r.status, 'reviewing') }}">{{ RUN_STATUS.get(r.status, r.status) }}</span></td>
+          <td class="num">{{ r.saved }}</td>
+          <td class="num">{{ r.skipped }}</td>
+          <td class="num">{{ r.failed }}</td>
+          <td class="num">{{ r.unseen }}</td>
+          <td class="muted">{{ r.error }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">Hali birorta do‘kon o‘qilmagan.</div>
+    {% endif %}
+  </div>
+  <p class="muted">Saqlandi — bazaga yozilgan e’lonlar; yo‘qolgan — bu safar saytda uchramay, «Mavjud emas» deb belgilanganlar.</p>
+</div>
+{% endif %}
+{% endblock %}

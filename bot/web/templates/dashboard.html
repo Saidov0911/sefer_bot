@@ -3,6 +3,7 @@
 {% block title %}Bosh sahifa{% endblock %}
 {% block content %}
 <h1>Bosh sahifa</h1>
+<h2>Telegram bot</h2>
 
 <div class="card page-head{{ '' if applications_open else ' warn' }}">
   <div>
@@ -51,6 +52,42 @@
   </a>
   {% endfor %}
 </div>
+
+{% if SITE_ENABLED %}
+<div class="section">
+  <div class="page-head"><h2>Sayt</h2>{% if SITE_URL %}<a href="{{ SITE_URL }}" target="_blank" rel="noopener">{{ SITE_URL }} →</a>{% endif %}</div>
+  {% if site %}
+  <div class="grid stats">
+    <a class="card stat" href="/site/users">
+      <div class="label">Sayt hisoblari</div>
+      <div class="value">{{ site.users }}</div>
+      <div class="sub">24 soatda +{{ site.users24h }}</div>
+    </a>
+    <a class="card stat" href="/site/shops">
+      <div class="label">Kitoblar</div>
+      <div class="value">{{ site.works }}</div>
+      <div class="sub">{{ site.editions }} nashr · {{ site.shops }} do‘kon</div>
+    </a>
+    <a class="card stat" href="/site/shops">
+      <div class="label">Takliflar</div>
+      <div class="value">{{ site.offers }}</div>
+      <div class="sub">sotuvda bor: {{ site.offersInStock }}</div>
+    </a>
+    <a class="card stat" href="/site/reviews">
+      <div class="label">Shubhali juftliklar</div>
+      <div class="value">{{ site.pendingReviews }}</div>
+      <div class="sub">qaror kutmoqda</div>
+    </a>
+    <a class="card stat" href="/site/bookings">
+      <div class="label">Bandlovlar</div>
+      <div class="value">{{ site.bookings }}</div>
+    </a>
+  </div>
+  {% else %}
+  <div class="card warn">Sayt API’si javob bermayapti — sayt ko‘rsatkichlari ko‘rsatilmadi.</div>
+  {% endif %}
+</div>
+{% endif %}
 
 {% if stats.not_in_group or (sheets_enabled and stats.not_in_sheet) %}
 <div class="card warn page-head">

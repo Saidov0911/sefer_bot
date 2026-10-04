@@ -1,0 +1,16 @@
+{# Sayt bo'limlari uchun umumiy bo'laklar #}
+
+{% macro api_error(error) -%}
+{% if error %}<div class="card warn">{{ error }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro pager(request, page, total, page_size) -%}
+{% set pages = ((total + page_size - 1) // page_size) or 1 %}
+{% if pages > 1 %}
+<nav class="pagination">
+  {% if page > 1 %}<a class="btn" href="{{ url_with(request, page=page - 1) }}">← Oldingi</a>{% endif %}
+  <span class="muted">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="btn" href="{{ url_with(request, page=page + 1) }}">Keyingi →</a>{% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}

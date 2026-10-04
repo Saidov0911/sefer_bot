@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_site.html" import api_error, pager %}
+{% block title %}Shubhali juftliklar{% endblock %}
+
+{% macro side(w) -%}
+<div class="pair-side">
+  {% set image = (w.editions | selectattr("imageUrl") | map(attribute="imageUrl") | first) %}
+  {% if image %}<img src="{{ image }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<div class="cover"></div>{% endif %}
+  <div>
+    <strong>{% if SITE_URL %}<a href="{{ SITE_URL }}/kitob/{{ w.slug | urlencode }}" target="_blank" rel="noopener">{{ w.title }}</a>{% else %}{{ w.title }}{% endif %}</strong>
+    <div class="muted">{{ w.author or "Muallif: ma’lumot yo‘q" }}</div>
+    <div class="muted">{{ LANGUAGES.get(w.language, w.language) or "Til: ma’lumot yo‘q" }} · {{ w.script or "yozuvi: ma’lumot yo‘q" }}</div>
+    <div class="muted">{{ w.sellers | join(", ") or "—" }}{% if w.minPriceDisplay %} · {{ w.minPriceDisplay }} dan{% endif %}</div>
+    <ul class="muted">
+      {% for e in w.editions %}
+      <li>«{{ e.title }}» — {{ [e.publisher, e.cover, (e.pages ~ " bet") if e.pages, e.year] | select | join(" · ") or "ma’lumot yo‘q" }} · ISBN {{ e.isbn or "ma’lumot yo‘q" }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Shubhali juftliklar {% if data %}<span class="muted">({{ data.total }})</span>{% endif %}</h1>
+  {% if user.is_admin %}
+  <form method="post" action="/site/reviews/refresh">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn">🔄 Qayta hisoblash</button>
+  </form>
+  {% endif %}
+</div>
+<p class="muted">
+  Nomi o‘xshash, lekin avtomatik birlashtirilmagan asarlar. «Bir asar» — o‘ngdagi asarning barcha nashrlari chapdagiga
+  qo‘shiladi va narxlari saytda bitta sahifada chiqadi (ortga qaytarib bo‘lmaydi). «Boshqa asar» — juftlik qayta taklif qilinmaydi.
+</p>
+{{ api_error(error) }}
+
+{% if data %}
+{% for r in data.reviews %}
+<div class="card section">
+  <div class="muted">{{ r.reason }} · nom o‘xshashligi {{ (r.score * 100) | round | int }}%</div>
+  <div class="pair">{{ side(r.a) }}{{ side(r.b) }}</div>
+  {% if user.is_admin %}
+  <div class="actions">
+    <form method="post" action="/site/reviews/{{ r.id }}" onsubmit="return confirm('Ikkala asar birlashtirilsinmi? Buni ortga qaytarib bo‘lmaydi.')">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="page" value="{{ page }}">
+      <input type="hidden" name="verdict" value="same">
+      <button class="btn btn-primary">Bir asar — birlashtirish</button>
+    </form>
+    <form method="post" action="/site/reviews/{{ r.id }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="page" value="{{ page }}">
+      <input type="hidden" name="verdict" value="different">
+      <button class="btn">Boshqa asar</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty">Tekshiriladigan juftlik qolmadi.</div>
+{% endfor %}
+{{ pager(request, page, data.total, page_size) }}
+{% endif %}
+{% endblock %}

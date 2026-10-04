@@ -15,12 +15,19 @@
   <nav>
     <a href="/" class="{{ 'active' if path == '/' }}">Bosh sahifa</a>
     <a href="/applications" class="{{ 'active' if path.startswith('/applications') }}">Arizalar</a>
-    <a href="/users" class="{{ 'active' if path.startswith('/users') }}">Foydalanuvchilar</a>
+    <a href="/users" class="{{ 'active' if path.startswith('/users') }}">Bot foydalanuvchilari</a>
     {% if user.is_admin %}
     <a href="/broadcast" class="{{ 'active' if path.startswith('/broadcast') }}">Ommaviy xabar</a>
     {% endif %}
+    {% if SITE_ENABLED %}
+    <span class="nav-sep">Sayt</span>
+    <a href="/site/users" class="{{ 'active' if path.startswith('/site/users') }}">Hisoblar</a>
+    <a href="/site/shops" class="{{ 'active' if path.startswith('/site/shops') }}">Do‘konlar</a>
+    <a href="/site/reviews" class="{{ 'active' if path.startswith('/site/reviews') }}">Juftliklar</a>
+    <a href="/site/bookings" class="{{ 'active' if path.startswith('/site/bookings') }}">Bandlovlar</a>
+    {% endif %}
     {% if user.from_env %}
-    <a href="/settings/admins" class="{{ 'active' if path.startswith('/settings/admins') }}">Hisoblar</a>
+    <a href="/settings/admins" class="{{ 'active' if path.startswith('/settings/admins') }}">Adminlar</a>
     {% endif %}
   </nav>
   <div class="topbar-user">

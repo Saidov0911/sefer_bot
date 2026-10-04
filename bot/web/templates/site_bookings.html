@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_site.html" import api_error, pager %}
+{% block title %}Bandlovlar{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Bandlovlar {% if data %}<span class="muted">({{ data.total }})</span>{% endif %}</h1>
+</div>
+{{ api_error(error) }}
+
+{% if data %}
+<div class="table-wrap">
+  {% if data.bookings %}
+  <table>
+    <thead><tr><th>Sana</th><th>Telefon</th><th>Kitob</th><th>Do‘kon</th><th class="num">Narx</th><th>Holat</th><th>Saqlash muddati</th></tr></thead>
+    <tbody>
+    {% for b in data.bookings %}
+      <tr>
+        <td class="muted">{{ b.createdAt | iso_time }}</td>
+        <td>{{ b.phone }}</td>
+        <td>{{ b.title or "—" }}{% if b.author %} <span class="muted">· {{ b.author }}</span>{% endif %}</td>
+        <td>{{ b.seller }}</td>
+        <td class="num">{{ b.price | money }}</td>
+        <td><span class="badge badge-{{ {'pending': 'reviewing', 'confirmed': 'accepted'}.get(b.status, 'muted') }}">{{ BOOKING_STATUS.get(b.status, b.status) }}</span></td>
+        <td class="muted">{{ b.holdUntil | iso_time }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Hozircha bandlov yo‘q.</div>
+  {% endif %}
+</div>
+{{ pager(request, page, data.total, data.limit) }}
+{% endif %}
+{% endblock %}
