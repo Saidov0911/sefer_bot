@@ -10,6 +10,10 @@ class Form(StatesGroup):
     confirm = State()
 
 
+class Login(StatesGroup):
+    phone = State()
+
+
 class Admin(StatesGroup):
     search = State()
     broadcast_message = State()

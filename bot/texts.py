@@ -68,7 +68,31 @@ SUBMITTED = (
     "Rahmat! Natijalar haqida siz bilan bog‘lanamiz. Sefer kanalini kuzatib boring."
 )
 ALREADY_SUBMITTED = "✅ Siz allaqachon ariza topshirgansiz. Natijalar haqida siz bilan bog‘lanamiz."
+APPLICATIONS_CLOSED = (
+    "Ariza qabul qilish <b>yakunlangan</b>. Qiziqishingiz uchun rahmat!\n\n"
+    "Yangiliklar uchun Sefer kanalini kuzatib boring. Sefer saytiga kirish kodi uchun — /login"
+)
 RESTART_FORM = "Anketani qaytadan to‘ldiramiz."
+
+# --- Sefer saytiga kirish ---
+LOGIN_ASK_PHONE = (
+    "🔐 <b>Sefer saytiga kirish</b>\n\n"
+    "Kod olish uchun pastdagi tugma orqali <b>telefon raqamingizni</b> ulashing."
+)
+LOGIN_NEED_CONTACT = "Iltimos, raqamni qo‘lda yozmang — pastdagi <b>«📱 Raqamni yuborish»</b> tugmasini bosing."
+LOGIN_CODE = (
+    "🔐 Sefer saytiga kirish kodi:\n\n"
+    "<code>{code}</code>\n\n"
+    "Kod <b>{seconds} soniya</b> amal qiladi va faqat bir marta ishlaydi. Uni hech kimga bermang."
+)
+LOGIN_CODE_SITE = "\n\nKodni shu yerga kiriting: {url}"
+LOGIN_FINISH_FORM = (
+    "Hozir anketa to‘ldirilmoqda. Avval uni yakunlang (yoki /start bosing), "
+    "so‘ng kod olish uchun /login yuboring."
+)
+LOGIN_TOO_MANY = "Juda ko‘p kod so‘radingiz. Bir necha daqiqadan keyin qayta urinib ko‘ring."
+LOGIN_UNAVAILABLE = "Hozir kod berib bo‘lmadi. Birozdan keyin /login orqali qayta urinib ko‘ring."
+LOGIN_DISABLED = "Saytga kirish hozircha yoqilmagan."
 
 BTN_CHANNEL = "📢 Sefer kanali"
 BTN_INSTAGRAM = "📸 Instagram"

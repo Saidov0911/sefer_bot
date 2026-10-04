@@ -11,14 +11,17 @@ from aiogram.types import BotCommand, BotCommandScopeChat
 
 from bot.config import settings
 from bot.db import Database
-from bot.handlers import admin, fallback, form, start
+from bot.handlers import admin, fallback, form, login, start
 from bot.services.broadcast import Broadcaster
 from bot.services.delivery import deliver_pending
 from bot.services.sheets import Sheets
 
 log = logging.getLogger("bot")
 
-USER_COMMANDS = [BotCommand(command="start", description="Botni boshlash")]
+USER_COMMANDS = [
+    BotCommand(command="start", description="Botni boshlash"),
+    BotCommand(command="login", description="Sefer saytiga kirish kodi"),
+]
 ADMIN_COMMANDS = [
     *USER_COMMANDS,
     BotCommand(command="admin", description="Admin panel"),
@@ -58,7 +61,8 @@ async def main() -> None:
 
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=make_storage(), db=db, sheets=sheets, broadcaster=broadcaster)
-    dp.include_routers(admin.router, start.router, form.router, fallback.router)
+    # login start'dan oldin turadi: "/start login" havolasini u ushlaydi
+    dp.include_routers(admin.router, login.router, start.router, form.router, fallback.router)
 
     await set_commands(bot)
     # Oldingi ishga tushishda yetkazilmay qolgan arizalar
@@ -71,6 +75,8 @@ async def main() -> None:
         web.start()
     else:
         log.info("ADMIN_PASSWORD berilmagan — web admin panel o'chiq")
+    if not settings.login_enabled:
+        log.info("SEFER_API_URL/SEFER_API_TOKEN berilmagan — saytga kirish kodi o'chiq")
 
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())

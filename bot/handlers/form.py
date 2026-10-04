@@ -173,6 +173,13 @@ async def on_restart(callback: CallbackQuery, bot: Bot, state: FSMContext):
 @router.callback_query(Form.confirm, F.data == keyboards.SUBMIT)
 async def on_submit(callback: CallbackQuery, bot: Bot, db: Database, sheets: Sheets | None, state: FSMContext):
     user_id = callback.from_user.id
+    # Anketa to'ldirilayotgan paytda qabul yopilgan bo'lishi mumkin
+    if not await db.applications_open():
+        await state.clear()
+        await callback.answer()
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(texts.APPLICATIONS_CLOSED)
+        return
     if not await is_subscribed(bot, user_id):
         await callback.answer()
         await callback.message.answer(texts.NOT_SUBSCRIBED, reply_markup=keyboards.subscribe())

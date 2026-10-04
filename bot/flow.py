@@ -1,5 +1,6 @@
 """Foydalanuvchi qaysi bosqichda ekanini aniqlab, keyingi qadamni ko'rsatadi:
-obuna -> do'stlarni taklif qilish -> anketa -> tayyor."""
+obuna -> do'stlarni taklif qilish -> anketa -> tayyor. Ariza qabul qilish paneldan
+yopilgan bo'lsa, ariza topshirmaganlarga shu aytiladi."""
 import logging
 
 from aiogram import Bot
@@ -47,6 +48,10 @@ async def show_next_step(bot: Bot, db: Database, state: FSMContext, user_id: int
 
     if await db.has_application(user_id):
         await bot.send_message(user_id, texts.ALREADY_SUBMITTED, reply_markup=keyboards.remove)
+        return
+
+    if not await db.applications_open():
+        await bot.send_message(user_id, texts.APPLICATIONS_CLOSED, reply_markup=keyboards.remove)
         return
 
     if not await is_subscribed(bot, user_id):

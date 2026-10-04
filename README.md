@@ -12,6 +12,30 @@ Sefer loyihasiga ariza qabul qiluvchi Telegram bot (Python 3.12+, aiogram 3).
 
 Yuborilgan ariza admin guruhiga (CV fayli + esse) va Google Sheets'ga yoziladi. Har bir foydalanuvchi bitta ariza topshira oladi.
 
+## Ariza qabul qilishni ochish va yopish
+
+Web panelning bosh sahifasida **«Ariza qabul qilish: ochiq / yopiq»** bloki bor; to'liq admin uni bir tugma bilan
+almashtiradi (sozlama bazada saqlanadi, bot qayta ishga tushsa ham o'zgarmaydi). Yopiq paytda:
+
+- ariza topshirmagan foydalanuvchiga bot obuna, taklif va anketa o'rniga qabul yakunlanganini aytadi;
+- to'ldirilayotgan anketa «Yuborish» bosilganda qabul qilinmaydi;
+- ariza topshirganlar, admin funksiyalari va `/login` avvalgidek ishlaydi.
+
+## Sefer saytiga kirish kodi
+
+`/login` buyrug'i (yoki saytdagi `t.me/<bot>?start=login` havolasi) foydalanuvchiga Sefer saytiga kirish uchun
+6 xonali bir martalik kod beradi:
+
+1. Bot telefon raqamini **«📱 Raqamni yuborish»** tugmasi orqali so'raydi. Faqat foydalanuvchining o'z kontakti
+   qabul qilinadi (qo'lda yozilgan raqam hech narsani isbotlamaydi). Raqam `users.phone` da saqlanadi — keyingi safar
+   so'ralmaydi.
+2. Bot Sefer backend'idan kod oladi (`POST /api/v1/auth/telegram/codes`) va foydalanuvchiga yuboradi.
+   Kod 1 daqiqa amal qiladi, bir marta ishlaydi.
+3. Foydalanuvchi kodni saytdagi `/kirish` sahifasiga kiritadi.
+
+Anketa to'ldirilayotgan paytda `/login` anketa javoblariga tegmaydi. `.env` da `SEFER_API_URL` va `SEFER_API_TOKEN`
+(backend'dagi `BOT_API_TOKEN` bilan bir xil) berilmasa, bu funksiya o'chiq.
+
 ## Sozlash
 
 1. @BotFather'da bot yarating, tokenni oling.

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     referrer_id       INTEGER REFERENCES users(id),
     referral_credited INTEGER NOT NULL DEFAULT 0,
     is_active         INTEGER NOT NULL DEFAULT 1,
+    phone             TEXT,  -- faqat o'z kontaktini ulashganda yoziladi (saytga kirish uchun)
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_users_referrer ON users(referrer_id, referral_credited);
@@ -37,6 +38,12 @@ CREATE TABLE IF NOT EXISTS applications (
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Paneldan boshqariladigan sozlamalar (masalan, ariza qabul qilish ochiq/yopiq)
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
 -- Web panel hisoblari (.env dagi asosiy hisobdan tashqari)
 CREATE TABLE IF NOT EXISTS admin_users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +58,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 # Eski bazalarga qo'shiladigan ustunlar: (jadval, ustun, ta'rif)
 MIGRATIONS = [
     ("users", "is_active", "INTEGER NOT NULL DEFAULT 1"),
+    ("users", "phone", "TEXT"),
     ("applications", "status", "TEXT NOT NULL DEFAULT 'new'"),
     ("applications", "status_updated_at", "TEXT"),
 ]
@@ -160,6 +168,32 @@ class Database:
     async def user_exists(self, user_id: int) -> bool:
         cur = await self.conn.execute("SELECT 1 FROM users WHERE id = ?", (user_id,))
         return await cur.fetchone() is not None
+
+    # --- sozlamalar ---
+
+    async def applications_open(self) -> bool:
+        """Ariza qabul qilinyaptimi. Sozlama hali qo'yilmagan bo'lsa — ochiq."""
+        cur = await self.conn.execute("SELECT value FROM settings WHERE key = 'applications_open'")
+        row = await cur.fetchone()
+        return row is None or row["value"] == "1"
+
+    async def set_applications_open(self, is_open: bool) -> None:
+        await self.conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('applications_open', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            ("1" if is_open else "0",),
+        )
+        await self.conn.commit()
+
+    async def get_phone(self, user_id: int) -> str | None:
+        """Foydalanuvchi o'z kontaktini ulashib tasdiqlagan telefon raqami."""
+        cur = await self.conn.execute("SELECT phone FROM users WHERE id = ?", (user_id,))
+        row = await cur.fetchone()
+        return row["phone"] if row else None
+
+    async def set_phone(self, user_id: int, phone: str) -> None:
+        await self.conn.execute("UPDATE users SET phone = ? WHERE id = ?", (phone, user_id))
+        await self.conn.commit()
 
     async def set_user_active(self, user_id: int, active: bool) -> None:
         await self.conn.execute("UPDATE users SET is_active = ? WHERE id = ?", (int(active), user_id))

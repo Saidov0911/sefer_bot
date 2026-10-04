@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     web_secret_key: str | None = None  # bo'sh bo'lsa har restartda sessiyalar bekor bo'ladi
     web_https_only: bool = False  # HTTPS orqasida ishlaganda True qiling
 
+    # Sefer saytiga kirish kodi (SEFER_API_URL yoki SEFER_API_TOKEN bo'sh bo'lsa o'chirilgan)
+    sefer_api_url: str | None = None  # masalan http://localhost:8081
+    sefer_api_token: str | None = None  # backend'dagi BOT_API_TOKEN bilan bir xil
+    site_url: str | None = None  # kod kiritiladigan sahifa, masalan https://sefer.uz/kirish
+
     @cached_property
     def admin_id_set(self) -> set[int]:
         return {int(x) for x in self.admin_ids.replace(" ", "").split(",") if x}
@@ -46,6 +51,10 @@ class Settings(BaseSettings):
     @property
     def sheets_enabled(self) -> bool:
         return bool(self.google_credentials_file and self.google_sheet_id)
+
+    @property
+    def login_enabled(self) -> bool:
+        return bool(self.sefer_api_url and self.sefer_api_token)
 
     @property
     def web_enabled(self) -> bool:

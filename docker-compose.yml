@@ -19,6 +19,10 @@ services:
     volumes:
       - ./data:/app/data
       - ./credentials.json:/app/credentials.json:ro
+    # Sefer backend shu serverning o'zida, boshqa compose loyihasida ishlasa:
+    # .env da SEFER_API_URL=http://host.docker.internal:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
 

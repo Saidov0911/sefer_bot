@@ -4,6 +4,22 @@
 {% block content %}
 <h1>Bosh sahifa</h1>
 
+<div class="card page-head{{ '' if applications_open else ' warn' }}">
+  <div>
+    <strong>Ariza qabul qilish: {{ 'ochiq' if applications_open else 'yopiq' }}.</strong>
+    {% if applications_open %}Bot yangi foydalanuvchilarni obuna, taklif va anketa bosqichlaridan o‘tkazmoqda.
+    {% else %}Bot ariza topshirmaganlarga qabul yakunlanganini aytadi; saytga kirish kodi (/login) ishlayveradi.{% endif %}
+  </div>
+  {% if user.is_admin %}
+  <form method="post" action="/settings/applications"
+        onsubmit="return confirm('{{ 'Ariza qabul qilish yopilsinmi? To‘ldirilayotgan anketalar yuborilmaydi.' if applications_open else 'Ariza qabul qilish qayta ochilsinmi?' }}')">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="open" value="{{ '0' if applications_open else '1' }}">
+    <button class="btn {{ 'btn-danger' if applications_open else 'btn-primary' }}">{{ 'Yopish' if applications_open else 'Ochish' }}</button>
+  </form>
+  {% endif %}
+</div>
+
 <div class="grid stats">
   <div class="card stat">
     <div class="label">Foydalanuvchilar</div>

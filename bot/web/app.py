@@ -203,7 +203,16 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             latest=await db.list_applications(limit=8),
             job=broadcaster.job,
             sheets_enabled=sheets is not None,
+            applications_open=await db.applications_open(),
         )
+
+    @panel.post("/settings/applications", dependencies=[Depends(verify_csrf)])
+    async def applications_toggle(request: Request, user: CurrentUser = Depends(load_admin), open: str = Form("")):
+        is_open = open == "1"
+        await db.set_applications_open(is_open)
+        log.info("Web panel: %s ariza qabul qilishni %s", user.username, "ochdi" if is_open else "yopdi")
+        flash(request, "Ariza qabul qilish ochildi." if is_open else "Ariza qabul qilish yopildi.")
+        return RedirectResponse("/", status_code=303)
 
     @panel.post("/sync", dependencies=[Depends(load_admin), Depends(verify_csrf)])
     async def sync(request: Request):
