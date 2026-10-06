@@ -31,6 +31,10 @@ async def stats() -> dict:
     return await _request("GET", "/stats")
 
 
+async def analytics(days: int) -> dict:
+    return await _request("GET", "/analytics", params={"days": days})
+
+
 async def users(q: str, page: int, limit: int) -> dict:
     return await _request("GET", "/users", params={"q": q, "page": page, "limit": limit})
 

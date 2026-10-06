@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% from "_site.html" import api_error %}
+{% block title %}Statistika{% endblock %}
+
+{% macro pct(part, whole) -%}
+{% if whole %}{{ (100 * part / whole) | round | int }}%{% else %}—{% endif %}
+{%- endmacro %}
+
+{% macro funnel_row(label, value, top, hint="") -%}
+<div class="funnel-row" title="{{ hint }}">
+  <div>{{ label }}</div>
+  <div class="funnel-bar"><div style="width: {{ (100 * value / top) if top else 0 }}%"></div></div>
+  <div class="funnel-num"><strong>{{ value }}</strong> <span class="muted">{{ pct(value, top) }}</span></div>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Statistika</h1>
+  <nav class="actions">
+    {% for d in STATS_PERIODS %}
+    <a class="btn {{ 'btn-primary' if d == days }}" href="/site/stats?days={{ d }}">{{ "Bugun" if d == 1 else d ~ " kun" }}</a>
+    {% endfor %}
+  </nav>
+</div>
+<p class="muted">
+  Saytdagi harakatlar, {{ "bugun" if days == 1 else "oxirgi " ~ days ~ " kun" }} (Toshkent vaqti bilan). Qidiruv tizimlari va boshqa robotlar hisobga olinmaydi.
+</p>
+{{ api_error(error) }}
+
+{% if data %}
+{% set t = data.totals %}{% set f = data.funnel %}
+<div class="grid stats">
+  <div class="card stat"><div class="label">Qidiruvlar</div><div class="value">{{ t.searches }}</div><div class="sub">{{ f.searchers }} kishi</div></div>
+  <div class="card stat"><div class="label">Narx solishtirish</div><div class="value">{{ t.compares }}</div><div class="sub">{{ f.comparers }} kishi</div></div>
+  <div class="card stat"><div class="label">Do‘kon saytiga o‘tish</div><div class="value">{{ t.shopClicks }}</div><div class="sub">{{ f.clickers }} kishi</div></div>
+  <div class="card stat"><div class="label">Kirishlar</div><div class="value">{{ t.logins }}</div><div class="sub">yangi hisob: {{ t.newUsers }}</div></div>
+  <div class="card stat"><div class="label">Login oldida to‘xtagan ko‘rishlar</div><div class="value">{{ t.bookViews }}</div><div class="sub">{{ f.blocked }} kishi</div></div>
+  <div class="card stat"><div class="label">«Eng yaqinini ko‘rsat»</div><div class="value">{{ t.locates }}</div><div class="sub">joylashuv bilan saralash</div></div>
+</div>
+
+<div class="card section">
+  <div class="page-head"><h2>Voronka: necha kishi qaysi bosqichgacha yetdi</h2></div>
+  <div class="funnel">
+    {{ funnel_row("Saytda biror harakat qilgan", f.visitors, f.visitors) }}
+    {{ funnel_row("Qidirgan", f.searchers, f.visitors) }}
+    {{ funnel_row("Kirmasdan kitob sahifasini ochgan", f.blocked, f.visitors, "Narxlar o‘rnida «kirish» taklifini ko‘rganlar") }}
+    {{ funnel_row("Tizimga kirgan", f.loggedIn, f.visitors) }}
+    {{ funnel_row("Narxlarni solishtirgan", f.comparers, f.visitors) }}
+    {{ funnel_row("Do‘kon saytiga o‘tgan", f.clickers, f.visitors) }}
+  </div>
+  <p class="muted">
+    Kishi — kirgan bo‘lsa hisobi, kirmagan bo‘lsa brauzeri bo‘yicha sanaladi; shu davrda avval kirmasdan, keyin kirib
+    foydalangan odam ikki marta sanalishi mumkin. Foizlar birinchi qatorga nisbatan.
+    {% if f.blocked %}Login oldida to‘xtaganlardan {{ pct(f.loggedIn, f.blocked) }} miqdoricha kishi shu davrda tizimga kirgan.{% endif %}
+  </p>
+</div>
+
+<div class="two-col section">
+  <div>
+    <div class="page-head"><h2>Eng ko‘p qidirilgan</h2></div>
+    <div class="table-wrap">
+      {% if data.topQueries %}
+      <table>
+        <thead><tr><th>So‘rov</th><th class="num">Marta</th><th class="num">Kishi</th><th class="num">Topilgan kitob</th></tr></thead>
+        <tbody>
+        {% for q in data.topQueries %}
+          <tr>
+            <td>{% if SITE_URL %}<a href="{{ SITE_URL }}/natijalar?q={{ q.query | urlencode }}" target="_blank" rel="noopener">{{ q.query }}</a>{% else %}{{ q.query }}{% endif %}</td>
+            <td class="num">{{ q.count }}</td><td class="num">{{ q.people }}</td>
+            <td class="num">{% if q.results %}{{ q.results }}{% else %}<span class="badge badge-rejected">0</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty">Bu davrda qidiruv bo‘lmagan.</div>{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="page-head"><h2>Hech narsa topilmagan so‘rovlar</h2></div>
+    <div class="table-wrap">
+      {% if data.noResults %}
+      <table>
+        <thead><tr><th>So‘rov</th><th class="num">Marta</th><th class="num">Kishi</th></tr></thead>
+        <tbody>
+        {% for q in data.noResults %}
+          <tr><td>{{ q.query }}</td><td class="num">{{ q.count }}</td><td class="num">{{ q.people }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty">Natijasiz qidiruv yo‘q.</div>{% endif %}
+    </div>
+    <p class="muted">Odamlar izlagan, lekin do‘konlarda topilmagan kitoblar — yangi do‘kon qo‘shish yoki qidiruvni yaxshilash uchun asos.</p>
+  </div>
+</div>
+
+{% macro books(title, rows, empty) -%}
+<div>
+  <div class="page-head"><h2>{{ title }}</h2></div>
+  <div class="table-wrap">
+    {% if rows %}
+    <table>
+      <thead><tr><th>Kitob</th><th class="num">Marta</th><th class="num">Kishi</th></tr></thead>
+      <tbody>
+      {% for b in rows %}
+        <tr>
+          <td>{% if SITE_URL %}<a href="{{ SITE_URL }}/kitob/{{ b.slug | urlencode }}" target="_blank" rel="noopener">{{ b.title or b.slug }}</a>{% else %}{{ b.title or b.slug }}{% endif %}</td>
+          <td class="num">{{ b.count }}</td><td class="num">{{ b.people }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">{{ empty }}</div>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+<div class="two-col section">
+  {{ books("Eng ko‘p solishtirilgan kitoblar", data.topCompared, "Bu davrda narx solishtirilmagan.") }}
+  {{ books("Kirmasdan eng ko‘p ochilgan kitoblar", data.topLocked, "Bu davrda bunday ko‘rish bo‘lmagan.") }}
+</div>
+
+<div class="two-col section">
+  <div>
+    <div class="page-head"><h2>Do‘konlar saytiga o‘tishlar</h2></div>
+    <div class="table-wrap">
+      {% if data.shopClicks %}
+      <table>
+        <thead><tr><th>Do‘kon</th><th class="num">O‘tish</th><th class="num">Kishi</th></tr></thead>
+        <tbody>
+        {% for s in data.shopClicks %}
+          <tr><td>{{ s.seller }}</td><td class="num">{{ s.count }}</td><td class="num">{{ s.people }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty">Bu davrda do‘kon saytiga o‘tish bo‘lmagan.</div>{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="page-head"><h2>Kunlar bo‘yicha</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sana</th><th class="num">Qidiruv</th><th class="num">Kirmasdan ko‘rish</th><th class="num">Solishtirish</th><th class="num">O‘tish</th><th class="num">Kirish</th></tr></thead>
+        <tbody>
+        {% for d in data.daily[:31] %}
+          <tr>
+            <td class="muted">{{ d.date }}</td>
+            <td class="num">{{ d.searches }}</td><td class="num">{{ d.bookViews }}</td><td class="num">{{ d.compares }}</td>
+            <td class="num">{{ d.shopClicks }}</td><td class="num">{{ d.logins }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

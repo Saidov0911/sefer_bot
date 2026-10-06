@@ -37,6 +37,7 @@ log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 PAGE_SIZE = 25
+STATS_PERIODS = (1, 7, 30, 90)  # statistika sahifasidagi davrlar, kun
 REVIEW_PAGE_SIZE = 10  # shubhali juftliklar: har biri ikkita asar kartasi
 LOGIN_MAX_FAILS = 5
 LOGIN_WINDOW = 600  # soniya
@@ -77,7 +78,7 @@ templates.env.globals.update(
     AUDIENCES=AUDIENCES, AUDIENCE_LABELS=texts.AUDIENCE_LABELS,
     ROLES=ROLES, ROLE_LABELS=ROLE_LABELS, ADMIN_USERNAME=settings.admin_username,
     url_with=url_with, SITE_ENABLED=settings.login_enabled, SITE_URL=settings.site_origin,
-    LANGUAGES={"uz": "O‘zbek", "ru": "Rus", "en": "Ingliz"},
+    LANGUAGES={"uz": "O‘zbek", "ru": "Rus", "en": "Ingliz"}, STATS_PERIODS=STATS_PERIODS,
     RUN_STATUS={"ok": "tugadi", "failed": "xato", "running": "ketmoqda"},
     BOOKING_STATUS={"pending": "kutilmoqda", "confirmed": "tasdiqlangan", "expired": "muddati o‘tgan", "cancelled": "bekor qilingan"},
 )
@@ -347,6 +348,11 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         except SiteApiError as e:
             data, error = None, str(e)
         return render(request, template, data=data, error=error, **context)
+
+    @panel.get("/site/stats")
+    async def site_stats_page(request: Request, days: int = 30):
+        days = days if days in STATS_PERIODS else 30
+        return await site_page(request, "site_stats.html", lambda: sefer_admin.analytics(days), days=days)
 
     @panel.get("/site/users")
     async def site_users(request: Request, q: str = "", page: int = 1):

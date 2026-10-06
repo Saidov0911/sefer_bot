@@ -20,6 +20,7 @@ kirish kodi uchun ishlatiladigan o'sha sozlamalar; berilmasa bu bo'limlar ko'rin
 
 | Bo'lim | Nima ko'rsatadi | Kim o'zgartira oladi |
 |---|---|---|
+| **Statistika** | 1 / 7 / 30 / 90 kunlik: qidiruvlar, kitob sahifalari, narx solishtirishlar, do'kon saytiga o'tishlar, kirishlar; qidiruvdan do'kongacha bo'lgan voronka; eng ko'p qidirilgan va natijasiz so'zlar; eng ko'p solishtirilgan kitoblar; do'konlar bo'yicha o'tishlar | — |
 | **Hisoblar** | Telegram kodi bilan saytga kirganlar; qidiruv | — |
 | **Do'konlar** | Har bir do'kon bo'yicha takliflar va sotuvda borlari; o'qish jurnali (qachon, nechta, xatolar) | — |
 | **Juftliklar** | Nomi o'xshash, lekin birlashtirilmagan asarlar | To'liq admin: «Bir asar» / «Boshqa asar», ro'yxatni qayta hisoblash |

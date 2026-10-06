@@ -21,6 +21,7 @@
     {% endif %}
     {% if SITE_ENABLED %}
     <span class="nav-sep">Sayt</span>
+    <a href="/site/stats" class="{{ 'active' if path.startswith('/site/stats') }}">Statistika</a>
     <a href="/site/users" class="{{ 'active' if path.startswith('/site/users') }}">Hisoblar</a>
     <a href="/site/shops" class="{{ 'active' if path.startswith('/site/shops') }}">Do‘konlar</a>
     <a href="/site/reviews" class="{{ 'active' if path.startswith('/site/reviews') }}">Juftliklar</a>

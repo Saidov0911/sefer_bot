@@ -219,3 +219,12 @@ dl.info dd { margin: 0; overflow-wrap: anywhere; }
 .pair-side img, .pair-side .cover { width: 64px; height: 90px; object-fit: cover; border-radius: 6px; flex: none; background: var(--border); }
 .pair-side ul { margin: 6px 0 0; padding-left: 18px; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* --- Statistika --- */
+.funnel { display: grid; gap: 8px; }
+.funnel-row { display: grid; grid-template-columns: minmax(150px, 230px) 1fr 110px; gap: 12px; align-items: center; }
+.funnel-bar { height: 22px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 14%, transparent); overflow: hidden; }
+.funnel-bar > div { height: 100%; background: var(--accent); border-radius: 6px; min-width: 2px; }
+.funnel-num { text-align: right; font-variant-numeric: tabular-nums; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .funnel-row { grid-template-columns: 1fr 70px; } .funnel-bar { display: none; } }

@@ -55,7 +55,7 @@
 
 {% if SITE_ENABLED %}
 <div class="section">
-  <div class="page-head"><h2>Sayt</h2>{% if SITE_URL %}<a href="{{ SITE_URL }}" target="_blank" rel="noopener">{{ SITE_URL }} →</a>{% endif %}</div>
+  <div class="page-head"><h2>Sayt</h2><span><a href="/site/stats">Statistika →</a>{% if SITE_URL %} &nbsp; <a href="{{ SITE_URL }}" target="_blank" rel="noopener">{{ SITE_URL }} →</a>{% endif %}</span></div>
   {% if site %}
   <div class="grid stats">
     <a class="card stat" href="/site/users">
