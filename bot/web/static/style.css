@@ -228,3 +228,11 @@ dl.info dd { margin: 0; overflow-wrap: anywhere; }
 .funnel-num { text-align: right; font-variant-numeric: tabular-nums; }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .funnel-row { grid-template-columns: 1fr 70px; } .funnel-bar { display: none; } }
+
+/* Adminlar: ruxsat katakchalari */
+.perm-tools { display: flex; gap: 16px; margin-bottom: 8px; }
+.perm-group { border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 8px 14px 12px; margin: 0 0 14px; }
+.perm-group legend { font-weight: 700; padding: 0 6px; }
+.perm { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
+.perm input { margin-top: 3px; flex: none; }
+.perm small { display: block; color: var(--muted); font-size: 13px; }

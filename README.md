@@ -23,7 +23,7 @@ kirish kodi uchun ishlatiladigan o'sha sozlamalar; berilmasa bu bo'limlar ko'rin
 | **Statistika** | 1 / 7 / 30 / 90 kunlik: qidiruvlar, kitob sahifalari, narx solishtirishlar, do'kon saytiga o'tishlar, kirishlar; qidiruvdan do'kongacha bo'lgan voronka; eng ko'p qidirilgan va natijasiz so'zlar; eng ko'p solishtirilgan kitoblar; do'konlar bo'yicha o'tishlar | — |
 | **Hisoblar** | Telegram kodi bilan saytga kirganlar; qidiruv | — |
 | **Do'konlar** | Har bir do'kon bo'yicha takliflar va sotuvda borlari; o'qish jurnali (qachon, nechta, xatolar) | — |
-| **Juftliklar** | Nomi o'xshash, lekin birlashtirilmagan asarlar | To'liq admin: «Bir asar» / «Boshqa asar», ro'yxatni qayta hisoblash |
+| **Juftliklar** | Nomi o'xshash, lekin birlashtirilmagan asarlar | «Juftliklar bo'yicha qaror» ruxsati bilan: «Bir asar» / «Boshqa asar», ro'yxatni qayta hisoblash |
 | **Bandlovlar** | Sayt orqali band qilingan kitoblar | — |
 
 Bosh sahifada sayt ko'rsatkichlari ham chiqadi. Backend javob bermasa, bot bo'limlari ishlayveradi,
@@ -31,7 +31,7 @@ sayt bo'limlarida esa xato xabari ko'rsatiladi.
 
 ## Ariza qabul qilishni ochish va yopish
 
-Web panelning bosh sahifasida **«Ariza qabul qilish: ochiq / yopiq»** bloki bor; to'liq admin uni bir tugma bilan
+Web panelning bosh sahifasida **«Ariza qabul qilish: ochiq / yopiq»** bloki bor; shu ruxsatga ega admin uni bir tugma bilan
 almashtiradi (sozlama bazada saqlanadi, bot qayta ishga tushsa ham o'zgarmaydi). Yopiq paytda:
 
 - ariza topshirmagan foydalanuvchiga bot obuna, taklif va anketa o'rniga qabul yakunlanganini aytadi;
@@ -110,17 +110,23 @@ Ikki xil panel bor, ikkalasi ham bir xil ma'lumot bilan ishlaydi.
 bosh sahifa (statistika), arizalar (filtr, qidiruv, CSV, CV yuklab olish, holatni o'zgartirish),
 foydalanuvchilar ro'yxati va matnli ommaviy xabar (avval adminlarga sinab ko'rish mumkin).
 
-**Hisoblar va rollar.** `.env` dagi `ADMIN_USERNAME`/`ADMIN_PASSWORD` — asosiy hisob (uni paneldan o'chirib bo'lmaydi).
-Qolgan xodimlarga hisob panel ichida **«Hisoblar»** bo'limidan ochiladi, parollar bazada `scrypt` bilan hashlab saqlanadi:
+**Adminlar va ruxsatlar.** `.env` dagi `ADMIN_USERNAME`/`ADMIN_PASSWORD` — asosiy hisob, ya'ni **superadmin**: u hammasini
+ko'radi va qila oladi, uni paneldan o'chirib bo'lmaydi. Qolgan adminlarga hisob panel ichidagi **«Adminlar»** bo'limidan
+ochiladi (parollar bazada `scrypt` bilan hashlab saqlanadi) va har biriga nima ochiqligi **har bir ish uchun alohida**
+belgilanadi. Bu bo'limni faqat superadmin ko'radi; boshqa adminlar na hisob qo'sha oladi, na o'ziga ruxsat bera oladi.
 
-| Kim | Nima qila oladi |
+| Bo'lim | Ruxsatlar |
 |---|---|
-| Asosiy hisob (`.env`) | Hammasi, shu jumladan **«Hisoblar»** bo'limi — hisob qo'shish, rol berish, parol tiklash, o'chirish |
-| To'liq admin | Ommaviy xabar, `/sync` va ko'ruvchining hamma imkoniyatlari. Hisoblarga tegа olmaydi |
-| Ko'ruvchi | Arizalar va foydalanuvchilarni ko'radi, holat qo'yadi, CV va CSV yuklaydi |
+| Telegram bot | arizalarni ko'rish · holatini o'zgartirish · CV yuklash · CSV yuklash · ariza qabulini ochish/yopish · yetkazilmagan arizalarni qayta yuborish · bot foydalanuvchilarini ko'rish · ommaviy xabar |
+| Sayt | statistika · sayt hisoblari · do'konlar · bandlovlar · shubhali juftliklarni ko'rish · juftliklar bo'yicha qaror |
+
+Ruxsati yo'q bo'lim menyuda ham, bosh sahifada ham ko'rinmaydi, manzilini qo'lda yozsa «Ruxsat yo'q» chiqadi (har bir
+so'rov serverda tekshiriladi). Ruxsatlar ro'yxati — `bot/web/permissions.py`; yangi sahifa qo'shilganda u yerga kalit
+qo'shiladi va yo'lga `Depends(require("kalit"))` yoziladi. Ruxsatlar qo'shilishidan oldin ochilgan hisoblar superadmin
+ularni qayta belgilamaguncha eski rolidagi imkoniyatlarini saqlaydi.
 
 Har kim o'z parolini yuqoridagi o'z logini orqali o'zgartira oladi; unutilgan parolni asosiy hisob tiklaydi.
-Hisob o'chirilsa yoki roli o'zgarsa, bu o'sha odamning ochiq sessiyasiga ham darhol ta'sir qiladi.
+Hisob o'chirilsa yoki ruxsatlari o'zgarsa, bu o'sha odamning ochiq sessiyasiga ham darhol ta'sir qiladi.
 
 - `WEB_SECRET_KEY` ni albatta bering — aks holda har restartda qayta kirish kerak bo'ladi.
 - Panel faqat `127.0.0.1:8080` da ochiladi. Domen orqali ochish — quyidagi **Domen va HTTPS (nginx)** bo'limida.

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_permissions.html" import permission_boxes %}
+{% block title %}{{ account.username }}{% endblock %}
+{% block content %}
+<a class="back" href="/settings/admins">← Adminlar</a>
+<h1>{{ account.username }}</h1>
+<p class="muted">
+  Qo‘shilgan: {{ account.created_at | local_time }} · Oxirgi kirish: {{ account.last_login_at | local_time or "hali kirmagan" }}
+</p>
+
+<form class="card section" method="post" action="/settings/admins/{{ account.id }}/permissions" style="max-width: 720px">
+  <h2>Nima qila oladi</h2>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {{ permission_boxes(account.permissions) }}
+  <p class="hint">
+    O‘zgarish darhol kuchga kiradi — admin qayta kirishi shart emas. Holat qo‘yish, CV va CSV yuklash arizalarni
+    ko‘rmasdan, juftliklar bo‘yicha qaror esa ro‘yxatni ko‘rmasdan ishlamaydi, shuning uchun ko‘rish ruxsati ularga qo‘shib beriladi.
+  </p>
+  <div class="actions"><button class="btn btn-primary">Saqlash</button></div>
+</form>
+
+<div class="grid detail section">
+  <form class="card" method="post" action="/settings/admins/{{ account.id }}/password">
+    <h2>Parolni tiklash</h2>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="field">
+      <span>Yangi parol</span>
+      <input type="password" name="password" autocomplete="new-password" required>
+    </label>
+    <div class="actions"><button class="btn">Parolni yangilash</button></div>
+  </form>
+
+  <form class="card" method="post" action="/settings/admins/{{ account.id }}/delete"
+        onsubmit="return confirm('«{{ account.username }}» hisobi o‘chirilsinmi?')">
+    <h2>Hisobni o‘chirish</h2>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <p class="hint">Admin paneldan darhol chiqarib yuboriladi va qayta kira olmaydi.</p>
+    <div class="actions"><button class="btn btn-danger">O‘chirish</button></div>
+  </form>
+</div>
+{% endblock %}

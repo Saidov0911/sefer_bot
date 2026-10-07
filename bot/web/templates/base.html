@@ -14,26 +14,24 @@
   <a class="brand" href="/">Sefer <span>admin</span></a>
   <nav>
     <a href="/" class="{{ 'active' if path == '/' }}">Bosh sahifa</a>
-    <a href="/applications" class="{{ 'active' if path.startswith('/applications') }}">Arizalar</a>
-    <a href="/users" class="{{ 'active' if path.startswith('/users') }}">Bot foydalanuvchilari</a>
-    {% if user.is_admin %}
-    <a href="/broadcast" class="{{ 'active' if path.startswith('/broadcast') }}">Ommaviy xabar</a>
-    {% endif %}
-    {% if SITE_ENABLED %}
+    {% if user.can('applications.view') %}<a href="/applications" class="{{ 'active' if path.startswith('/applications') }}">Arizalar</a>{% endif %}
+    {% if user.can('users.view') %}<a href="/users" class="{{ 'active' if path.startswith('/users') }}">Bot foydalanuvchilari</a>{% endif %}
+    {% if user.can('broadcast.send') %}<a href="/broadcast" class="{{ 'active' if path.startswith('/broadcast') }}">Ommaviy xabar</a>{% endif %}
+    {% if SITE_ENABLED and user.can_any('site.stats', 'site.users', 'site.shops', 'site.reviews', 'site.bookings') %}
     <span class="nav-sep">Sayt</span>
-    <a href="/site/stats" class="{{ 'active' if path.startswith('/site/stats') }}">Statistika</a>
-    <a href="/site/users" class="{{ 'active' if path.startswith('/site/users') }}">Hisoblar</a>
-    <a href="/site/shops" class="{{ 'active' if path.startswith('/site/shops') }}">Do‘konlar</a>
-    <a href="/site/reviews" class="{{ 'active' if path.startswith('/site/reviews') }}">Juftliklar</a>
-    <a href="/site/bookings" class="{{ 'active' if path.startswith('/site/bookings') }}">Bandlovlar</a>
+    {% if user.can('site.stats') %}<a href="/site/stats" class="{{ 'active' if path.startswith('/site/stats') }}">Statistika</a>{% endif %}
+    {% if user.can('site.users') %}<a href="/site/users" class="{{ 'active' if path.startswith('/site/users') }}">Hisoblar</a>{% endif %}
+    {% if user.can('site.shops') %}<a href="/site/shops" class="{{ 'active' if path.startswith('/site/shops') }}">Do‘konlar</a>{% endif %}
+    {% if user.can('site.reviews') %}<a href="/site/reviews" class="{{ 'active' if path.startswith('/site/reviews') }}">Juftliklar</a>{% endif %}
+    {% if user.can('site.bookings') %}<a href="/site/bookings" class="{{ 'active' if path.startswith('/site/bookings') }}">Bandlovlar</a>{% endif %}
     {% endif %}
-    {% if user.from_env %}
+    {% if user.is_owner %}
     <a href="/settings/admins" class="{{ 'active' if path.startswith('/settings/admins') }}">Adminlar</a>
     {% endif %}
   </nav>
   <div class="topbar-user">
     <a href="/settings/password" title="Parolni o‘zgartirish">{{ user.username }}</a>
-    {% if not user.is_admin %}<span class="badge badge-muted">ko‘ruvchi</span>{% endif %}
+    {% if user.is_owner %}<span class="badge badge-muted">superadmin</span>{% endif %}
     <form method="post" action="/logout">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <button class="link">Chiqish</button>

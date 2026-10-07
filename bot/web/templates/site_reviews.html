@@ -23,7 +23,7 @@
 {% block content %}
 <div class="page-head">
   <h1>Shubhali juftliklar {% if data %}<span class="muted">({{ data.total }})</span>{% endif %}</h1>
-  {% if user.is_admin %}
+  {% if user.can('site.reviews.decide') %}
   <form method="post" action="/site/reviews/refresh">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <button class="btn">🔄 Qayta hisoblash</button>
@@ -41,7 +41,7 @@
 <div class="card section">
   <div class="muted">{{ r.reason }} · nom o‘xshashligi {{ (r.score * 100) | round | int }}%</div>
   <div class="pair">{{ side(r.a) }}{{ side(r.b) }}</div>
-  {% if user.is_admin %}
+  {% if user.can('site.reviews.decide') %}
   <div class="actions">
     <form method="post" action="/site/reviews/{{ r.id }}" onsubmit="return confirm('Ikkala asar birlashtirilsinmi? Buni ortga qaytarib bo‘lmaydi.')">
       <input type="hidden" name="csrf" value="{{ csrf }}">

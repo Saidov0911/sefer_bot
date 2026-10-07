@@ -21,7 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from bot import texts
 from bot.config import settings
-from bot.db import AUDIENCES, ROLES, STATUSES, Database
+from bot.db import AUDIENCES, STATUSES, Database
 from bot.services import sefer_admin
 from bot.services.broadcast import Broadcaster
 from bot.services.delivery import admin_message_link, deliver_pending
@@ -30,7 +30,7 @@ from bot.services.sheets import Sheets
 from bot.services.sefer_admin import SiteApiError
 from bot.services.status import change_status
 from bot.utils import TASHKENT, local_time
-from bot.web import auth
+from bot.web import auth, permissions
 from bot.web.auth import CurrentUser, Forbidden, LoginRequired
 
 log = logging.getLogger(__name__)
@@ -42,7 +42,6 @@ REVIEW_PAGE_SIZE = 10  # shubhali juftliklar: har biri ikkita asar kartasi
 LOGIN_MAX_FAILS = 5
 LOGIN_WINDOW = 600  # soniya
 TG_TEXT_LIMIT = 4096
-ROLE_LABELS = {"admin": "To‘liq admin", "viewer": "Ko‘ruvchi"}
 
 
 def url_with(request: Request, **params) -> str:
@@ -76,7 +75,7 @@ templates.env.filters["dt"] = lambda d: d.astimezone(TASHKENT).strftime("%Y-%m-%
 templates.env.globals.update(
     STATUSES=STATUSES, STATUS_LABELS=texts.STATUS_LABELS,
     AUDIENCES=AUDIENCES, AUDIENCE_LABELS=texts.AUDIENCE_LABELS,
-    ROLES=ROLES, ROLE_LABELS=ROLE_LABELS, ADMIN_USERNAME=settings.admin_username,
+    PERMISSION_GROUPS=permissions.GROUPS, PERMISSION_COUNT=len(permissions.ALL), ADMIN_USERNAME=settings.admin_username,
     url_with=url_with, SITE_ENABLED=settings.login_enabled, SITE_URL=settings.site_origin,
     LANGUAGES={"uz": "O‘zbek", "ru": "Rus", "en": "Ingliz"}, STATS_PERIODS=STATS_PERIODS,
     RUN_STATUS={"ok": "tugadi", "failed": "xato", "running": "ketmoqda"},
@@ -93,10 +92,13 @@ async def verify_csrf(request: Request) -> None:
 
 def render(request: Request, name: str, status_code: int = 200, **context) -> Response:
     csrf = request.session.setdefault("csrf", secrets.token_urlsafe(32))
-    try:
-        user = auth.current_user(request)
-    except LoginRequired:
-        user = None
+    # Panel sahifalarida load_user ruxsatlari bilan to'ldirgan hisob; qolganlarida sessiyadagisi
+    user = getattr(request.state, "user", None)
+    if user is None:
+        try:
+            user = auth.current_user(request)
+        except LoginRequired:
+            user = None
     context = {
         "csrf": csrf, "user": user, "flash": request.session.pop("flash", None),
         "path": request.url.path, **context,
@@ -178,7 +180,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
         failures.clear()
         auth.start_session(request, user)
-        log.info("Web panelga kirdi: %s (%s, ip=%s)", user.username, user.role, ip)
+        log.info("Web panelga kirdi: %s (%s, ip=%s)", user.username, "superadmin" if user.is_owner else "admin", ip)
         return RedirectResponse(_safe_next(next), status_code=303)
 
     @app.post("/logout", dependencies=[Depends(verify_csrf)])
@@ -189,29 +191,35 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
     # --- Kirgan foydalanuvchi ---
 
     async def load_user(request: Request) -> CurrentUser:
-        """Sessiyadagi hisob bazada hali ham bor va roli o'zgarmaganini tekshiradi."""
+        """Sessiyadagi hisob bazada hali ham borligini tekshiradi va ruxsatlarini o'qiydi.
+
+        Ruxsatlar har so'rovda bazadan olinadi: superadmin ularni o'zgartirsa yoki
+        hisobni o'chirsa, bu ochiq sessiyaga ham darhol ta'sir qiladi.
+        """
         user = auth.current_user(request)
-        if user.user_id is None:  # .env dagi asosiy hisob
-            return user
-        account = await db.admin_user_by_id(user.user_id)
-        if account is None:  # hisob o'chirilgan
-            request.session.clear()
-            raise LoginRequired
-        if account.role != user.role:  # rol o'zgargan — sessiyani yangilaymiz
-            request.session["role"] = account.role
-            return CurrentUser(username=account.username, role=account.role, user_id=account.id)
+        if user.user_id is not None:  # .env dagi asosiy hisob emas
+            account = await db.admin_user_by_id(user.user_id)
+            if account is None:  # hisob o'chirilgan
+                request.session.clear()
+                raise LoginRequired
+            user = CurrentUser(username=account.username, user_id=account.id, permissions=account.permissions)
+        request.state.user = user
         return user
 
-    async def load_admin(request: Request) -> CurrentUser:
-        user = await load_user(request)
-        if not user.is_admin:
-            raise Forbidden
-        return user
+    def require(*wanted: str):
+        """Sanalgan ruxsatlardan kamida bittasi bo'lishi shart."""
+        async def check(request: Request) -> CurrentUser:
+            user = await load_user(request)
+            if not user.can_any(*wanted):
+                log.warning("Web panel: %s ruxsatsiz urindi: %s %s", user.username, request.method, request.url.path)
+                raise Forbidden
+            return user
+        return check
 
     async def load_owner(request: Request) -> CurrentUser:
-        """Hisoblarni faqat .env dagi asosiy hisob boshqaradi."""
+        """Hisoblar va ruxsatlarni faqat .env dagi asosiy hisob boshqaradi."""
         user = await load_user(request)
-        if not user.from_env:
+        if not user.is_owner:
             raise Forbidden
         return user
 
@@ -230,7 +238,8 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             return None
 
     @panel.get("/")
-    async def dashboard(request: Request):
+    async def dashboard(request: Request, user: CurrentUser = Depends(load_user)):
+        sees_site = user.can_any(*(p for p in permissions.ALL if p.startswith("site.")))
         return render(
             request, "dashboard.html",
             stats=await db.stats(),
@@ -239,24 +248,27 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             job=broadcaster.job,
             sheets_enabled=sheets is not None,
             applications_open=await db.applications_open(),
-            site=await site_stats(),
+            site=await site_stats() if sees_site else None,
+            sees_site=sees_site,
         )
 
     @panel.post("/settings/applications", dependencies=[Depends(verify_csrf)])
-    async def applications_toggle(request: Request, user: CurrentUser = Depends(load_admin), open: str = Form("")):
+    async def applications_toggle(
+        request: Request, user: CurrentUser = Depends(require("applications.toggle")), open: str = Form(""),
+    ):
         is_open = open == "1"
         await db.set_applications_open(is_open)
         log.info("Web panel: %s ariza qabul qilishni %s", user.username, "ochdi" if is_open else "yopdi")
         flash(request, "Ariza qabul qilish ochildi." if is_open else "Ariza qabul qilish yopildi.")
         return RedirectResponse("/", status_code=303)
 
-    @panel.post("/sync", dependencies=[Depends(load_admin), Depends(verify_csrf)])
+    @panel.post("/sync", dependencies=[Depends(require("applications.sync")), Depends(verify_csrf)])
     async def sync(request: Request):
         count = await deliver_pending(bot, db, sheets)
         flash(request, f"Qayta yuborildi: {count} ta ariza.")
         return RedirectResponse("/", status_code=303)
 
-    @panel.get("/applications")
+    @panel.get("/applications", dependencies=[Depends(require("applications.view"))])
     async def applications(request: Request, status: str = "", q: str = "", page: int = 1):
         status = status if status in STATUSES else ""
         total = await db.count_applications(status or None, q)
@@ -269,7 +281,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             export_url="/applications.csv?" + urlencode({"status": status, "q": q}),
         )
 
-    @panel.get("/applications.csv")
+    @panel.get("/applications.csv", dependencies=[Depends(require("applications.export"))])
     async def applications_export(status: str = "", q: str = ""):
         status = status if status in STATUSES else ""
         apps = await db.list_applications(status or None, q)
@@ -279,7 +291,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             headers={"Content-Disposition": _attachment(filename)},
         )
 
-    @panel.get("/applications/{user_id}")
+    @panel.get("/applications/{user_id}", dependencies=[Depends(require("applications.view"))])
     async def application_detail(request: Request, user_id: int):
         app_ = await db.get_application(user_id)
         if app_ is None:
@@ -287,7 +299,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         group_link = admin_message_link(app_.admin_msg_id) if app_.admin_msg_id else None
         return render(request, "application.html", app=app_, group_link=group_link)
 
-    @panel.get("/applications/{user_id}/cv")
+    @panel.get("/applications/{user_id}/cv", dependencies=[Depends(require("applications.cv"))])
     async def application_cv(user_id: int):
         app_ = await db.get_application(user_id)
         if app_ is None:
@@ -309,7 +321,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
     @panel.post("/applications/{user_id}/status", dependencies=[Depends(verify_csrf)])
     async def application_status(
-        request: Request, user_id: int, user: CurrentUser = Depends(load_user),
+        request: Request, user_id: int, user: CurrentUser = Depends(require("applications.status")),
         status: str = Form(...), notify: bool = Form(False),
     ):
         if status not in STATUSES:
@@ -327,7 +339,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             flash(request, "Holat o'zgartirildi" + (", foydalanuvchiga xabar yuborildi." if notified else "."))
         return RedirectResponse(f"/applications/{user_id}", status_code=303)
 
-    @panel.get("/users")
+    @panel.get("/users", dependencies=[Depends(require("users.view"))])
     async def users(request: Request, q: str = "", page: int = 1):
         total = await db.count_users(q)
         page, pages, offset = paginate(total, page)
@@ -349,30 +361,30 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             data, error = None, str(e)
         return render(request, template, data=data, error=error, **context)
 
-    @panel.get("/site/stats")
+    @panel.get("/site/stats", dependencies=[Depends(require("site.stats"))])
     async def site_stats_page(request: Request, days: int = 30):
         days = days if days in STATS_PERIODS else 30
         return await site_page(request, "site_stats.html", lambda: sefer_admin.analytics(days), days=days)
 
-    @panel.get("/site/users")
+    @panel.get("/site/users", dependencies=[Depends(require("site.users"))])
     async def site_users(request: Request, q: str = "", page: int = 1):
         page = max(page, 1)
         return await site_page(
             request, "site_users.html", lambda: sefer_admin.users(q, page, PAGE_SIZE), q=q, page=page,
         )
 
-    @panel.get("/site/shops")
+    @panel.get("/site/shops", dependencies=[Depends(require("site.shops"))])
     async def site_shops(request: Request):
         return await site_page(request, "site_shops.html", sefer_admin.shops)
 
-    @panel.get("/site/bookings")
+    @panel.get("/site/bookings", dependencies=[Depends(require("site.bookings"))])
     async def site_bookings(request: Request, page: int = 1):
         page = max(page, 1)
         return await site_page(
             request, "site_bookings.html", lambda: sefer_admin.bookings(page, PAGE_SIZE), page=page,
         )
 
-    @panel.get("/site/reviews")
+    @panel.get("/site/reviews", dependencies=[Depends(require("site.reviews"))])
     async def site_reviews(request: Request, page: int = 1):
         page = max(page, 1)
         return await site_page(
@@ -381,7 +393,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         )
 
     @panel.post("/site/reviews/refresh", dependencies=[Depends(verify_csrf)])
-    async def site_reviews_refresh(request: Request, user: CurrentUser = Depends(load_admin)):
+    async def site_reviews_refresh(request: Request, user: CurrentUser = Depends(require("site.reviews.decide"))):
         try:
             result = await sefer_admin.refresh_reviews()
             flash(request, f"Ro'yxat qayta hisoblandi: {result['pending']} ta juftlik.")
@@ -391,7 +403,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
 
     @panel.post("/site/reviews/{review_id}", dependencies=[Depends(verify_csrf)])
     async def site_review_decide(
-        request: Request, review_id: int, user: CurrentUser = Depends(load_admin),
+        request: Request, review_id: int, user: CurrentUser = Depends(require("site.reviews.decide")),
         verdict: str = Form(""), page: int = Form(1),
     ):
         try:
@@ -411,13 +423,13 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
             audience=audience, text=text, **context,
         )
 
-    @panel.get("/broadcast", dependencies=[Depends(load_admin)])
+    @panel.get("/broadcast", dependencies=[Depends(require("broadcast.send"))])
     async def broadcast(request: Request):
         return await broadcast_page(request)
 
-    @panel.post("/broadcast", dependencies=[Depends(load_admin), Depends(verify_csrf)])
+    @panel.post("/broadcast", dependencies=[Depends(require("broadcast.send")), Depends(verify_csrf)])
     async def broadcast_send(
-        request: Request, user: CurrentUser = Depends(load_admin),
+        request: Request, user: CurrentUser = Depends(require("broadcast.send")),
         audience: str = Form("all"), text: str = Form(""), action: str = Form("start"),
     ):
         text = text.strip()
@@ -452,7 +464,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         flash(request, f"Tarqatma boshlandi: {job.total} ta foydalanuvchi.")
         return RedirectResponse("/broadcast", status_code=303)
 
-    @panel.post("/broadcast/stop", dependencies=[Depends(load_admin), Depends(verify_csrf)])
+    @panel.post("/broadcast/stop", dependencies=[Depends(require("broadcast.send")), Depends(verify_csrf)])
     async def broadcast_stop(request: Request):
         broadcaster.cancel()
         flash(request, "Tarqatma to'xtatilmoqda.", "info")
@@ -467,18 +479,42 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
     @panel.post("/settings/admins", dependencies=[Depends(verify_csrf)])
     async def admin_create(
         request: Request, user: CurrentUser = Depends(load_owner),
-        username: str = Form(""), password: str = Form(""), role: str = Form("viewer"),
+        username: str = Form(""), password: str = Form(""), granted: list[str] = Form([]),
     ):
         username = username.strip().lower()
-        error = auth.check_username(username) or auth.check_password(password) or auth.check_role(role)
-        if not error and not await db.create_admin_user(username, auth.hash_password(password), role):
+        error = auth.check_username(username) or auth.check_password(password)
+        if not error and not await db.create_admin_user(username, auth.hash_password(password), granted):
             error = "Bunday login allaqachon mavjud."
         if error:
             flash(request, error, "error")
-        else:
-            log.info("Web panel: %s «%s» hisobini qo'shdi (%s)", user.username, username, role)
-            flash(request, f"«{username}» qo'shildi.")
+            return RedirectResponse("/settings/admins", status_code=303)
+        log.info(
+            "Web panel: %s «%s» hisobini qo'shdi (ruxsatlar: %s)",
+            user.username, username, permissions.encode(granted) or "yo'q",
+        )
+        flash(request, f"«{username}» qo'shildi.")
         return RedirectResponse("/settings/admins", status_code=303)
+
+    @panel.get("/settings/admins/{account_id}", dependencies=[Depends(load_owner)])
+    async def admin_page(request: Request, account_id: int):
+        account = await db.admin_user_by_id(account_id)
+        if account is None:
+            raise HTTPException(404, "Hisob topilmadi")
+        return render(request, "admin.html", account=account)
+
+    @panel.post("/settings/admins/{account_id}/permissions", dependencies=[Depends(verify_csrf)])
+    async def admin_set_permissions(
+        request: Request, account_id: int, user: CurrentUser = Depends(load_owner), granted: list[str] = Form([]),
+    ):
+        if not await db.set_admin_permissions(account_id, granted):
+            flash(request, "Hisob topilmadi.", "error")
+            return RedirectResponse("/settings/admins", status_code=303)
+        log.info(
+            "Web panel: %s #%s hisob ruxsatlarini belgiladi: %s",
+            user.username, account_id, permissions.encode(granted) or "yo'q",
+        )
+        flash(request, "Ruxsatlar saqlandi.")
+        return RedirectResponse(f"/settings/admins/{account_id}", status_code=303)
 
     @panel.post("/settings/admins/{account_id}/password", dependencies=[Depends(verify_csrf)])
     async def admin_reset_password(
@@ -491,20 +527,7 @@ def create_app(bot: Bot, db: Database, sheets: Sheets | None, broadcaster: Broad
         else:
             log.info("Web panel: %s #%s hisob parolini yangiladi", user.username, account_id)
             flash(request, "Parol yangilandi.")
-        return RedirectResponse("/settings/admins", status_code=303)
-
-    @panel.post("/settings/admins/{account_id}/role", dependencies=[Depends(verify_csrf)])
-    async def admin_set_role(
-        request: Request, account_id: int, user: CurrentUser = Depends(load_owner), role: str = Form(""),
-    ):
-        if error := auth.check_role(role):
-            flash(request, error, "error")
-        elif not await db.set_admin_role(account_id, role):
-            flash(request, "Hisob topilmadi.", "error")
-        else:
-            log.info("Web panel: %s #%s hisobga «%s» rolini berdi", user.username, account_id, role)
-            flash(request, "Rol o'zgartirildi.")
-        return RedirectResponse("/settings/admins", status_code=303)
+        return RedirectResponse(f"/settings/admins/{account_id}", status_code=303)
 
     @panel.post("/settings/admins/{account_id}/delete", dependencies=[Depends(verify_csrf)])
     async def admin_delete(request: Request, account_id: int, user: CurrentUser = Depends(load_owner)):

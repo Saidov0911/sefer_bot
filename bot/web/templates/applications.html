@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <h1>Arizalar <span class="muted">({{ total }})</span></h1>
-  <a class="btn" href="{{ export_url }}">📥 CSV yuklab olish</a>
+  {% if user.can('applications.export') %}<a class="btn" href="{{ export_url }}">📥 CSV yuklab olish</a>{% endif %}
 </div>
 
 <div class="toolbar">

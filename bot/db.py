@@ -3,11 +3,14 @@ from pathlib import Path
 
 import aiosqlite
 
+from bot.web import permissions
+
 # Ariza holatlari (yorliqlar: texts.STATUS_LABELS)
 STATUSES = ("new", "reviewing", "accepted", "rejected")
 # Ommaviy xabar auditoriyalari (yorliqlar: texts.AUDIENCE_LABELS)
 AUDIENCES = ("all", "applied", "not_applied", *STATUSES)
-# Web panel rollari (bot/web/auth.py)
+# Web panelning eski rollari; endi har bir hisobga ruxsatlar alohida beriladi
+# (bot/web/permissions.py), rol faqat ruxsati hali belgilanmagan eski hisoblar uchun.
 ROLES = ("admin", "viewer")
 
 SCHEMA = """
@@ -50,6 +53,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
     username      TEXT NOT NULL COLLATE NOCASE UNIQUE,
     password_hash TEXT NOT NULL,
     role          TEXT NOT NULL DEFAULT 'viewer',
+    permissions   TEXT,  -- vergul bilan ajratilgan kalitlar; NULL — eski rol bo'yicha
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     last_login_at TEXT
 );
@@ -61,6 +65,7 @@ MIGRATIONS = [
     ("users", "phone", "TEXT"),
     ("applications", "status", "TEXT NOT NULL DEFAULT 'new'"),
     ("applications", "status_updated_at", "TEXT"),
+    ("admin_users", "permissions", "TEXT"),
 ]
 
 INDEXES = """
@@ -90,7 +95,7 @@ class Application:
 class AdminUser:
     id: int
     username: str
-    role: str
+    permissions: frozenset[str]
     created_at: str
     last_login_at: str | None
     password_hash: str = ""
@@ -279,7 +284,8 @@ class Database:
     @staticmethod
     def _admin_user(row: aiosqlite.Row) -> AdminUser:
         return AdminUser(
-            id=row["id"], username=row["username"], role=row["role"], created_at=row["created_at"],
+            id=row["id"], username=row["username"],
+            permissions=permissions.decode(row["permissions"], row["role"]), created_at=row["created_at"],
             last_login_at=row["last_login_at"], password_hash=row["password_hash"],
         )
 
@@ -297,13 +303,11 @@ class Database:
         cur = await self.conn.execute("SELECT * FROM admin_users ORDER BY created_at")
         return [self._admin_user(r) for r in await cur.fetchall()]
 
-    async def create_admin_user(self, username: str, password_hash: str, role: str) -> bool:
+    async def create_admin_user(self, username: str, password_hash: str, granted) -> bool:
         """Qaytaradi: yaratildimi (False — bunday login band)."""
-        if role not in ROLES:
-            raise ValueError(f"Noma'lum rol: {role}")
         cur = await self.conn.execute(
-            "INSERT OR IGNORE INTO admin_users (username, password_hash, role) VALUES (?, ?, ?)",
-            (username, password_hash, role),
+            "INSERT OR IGNORE INTO admin_users (username, password_hash, permissions) VALUES (?, ?, ?)",
+            (username, password_hash, permissions.encode(granted)),
         )
         await self.conn.commit()
         return cur.rowcount == 1
@@ -315,10 +319,10 @@ class Database:
         await self.conn.commit()
         return cur.rowcount == 1
 
-    async def set_admin_role(self, account_id: int, role: str) -> bool:
-        if role not in ROLES:
-            raise ValueError(f"Noma'lum rol: {role}")
-        cur = await self.conn.execute("UPDATE admin_users SET role = ? WHERE id = ?", (role, account_id))
+    async def set_admin_permissions(self, account_id: int, granted) -> bool:
+        cur = await self.conn.execute(
+            "UPDATE admin_users SET permissions = ? WHERE id = ?", (permissions.encode(granted), account_id)
+        )
         await self.conn.commit()
         return cur.rowcount == 1
 

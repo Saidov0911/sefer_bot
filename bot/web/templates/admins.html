@@ -1,90 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Hisoblar{% endblock %}
+{% from "_permissions.html" import permission_boxes %}
+{% block title %}Adminlar{% endblock %}
 {% block content %}
-<h1>Web panel hisoblari</h1>
+<h1>Adminlar</h1>
+<p class="muted">
+  Har bir admin panelda nimani ko‘rishi va nima qila olishini shu yerda, har bir ish uchun alohida belgilaysiz.
+  Bu bo‘lim faqat sizga — <code>.env</code> dagi <strong>{{ ADMIN_USERNAME }}</strong> (superadmin) hisobiga ko‘rinadi.
+</p>
 
 <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>Login</th><th>Rol</th><th>Qo‘shilgan</th><th>Oxirgi kirish</th><th>Amallar</th></tr>
+      <tr><th>Login</th><th>Ruxsatlar</th><th>Qo‘shilgan</th><th>Oxirgi kirish</th><th></th></tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>{{ ADMIN_USERNAME }}</strong></td>
-        <td>{{ ROLE_LABELS["admin"] }}</td>
+        <td><strong>{{ ADMIN_USERNAME }}</strong> <span class="badge badge-muted">superadmin</span></td>
+        <td>Hammasi</td>
         <td class="muted">—</td>
         <td class="muted">—</td>
         <td class="muted">Asosiy hisob, <code>.env</code> da</td>
       </tr>
       {% for a in accounts %}
       <tr>
-        <td><strong>{{ a.username }}</strong></td>
+        <td><a href="/settings/admins/{{ a.id }}"><strong>{{ a.username }}</strong></a></td>
         <td>
-          <form method="post" action="/settings/admins/{{ a.id }}/role" class="inline-form">
-            <input type="hidden" name="csrf" value="{{ csrf }}">
-            <select name="role">
-              {% for r in ROLES %}<option value="{{ r }}" {{ 'selected' if a.role == r }}>{{ ROLE_LABELS[r] }}</option>{% endfor %}
-            </select>
-            <button class="btn">Saqlash</button>
-          </form>
+          {% if not a.permissions %}<span class="muted">hech narsa ochilmagan</span>
+          {% else %}{{ a.permissions | length }} / {{ PERMISSION_COUNT }}{% endif %}
         </td>
         <td class="muted">{{ a.created_at | local_time }}</td>
         <td class="muted">{{ a.last_login_at | local_time or "—" }}</td>
-        <td>
-          <div class="row-actions">
-            <form method="post" action="/settings/admins/{{ a.id }}/password" class="inline-form">
-              <input type="hidden" name="csrf" value="{{ csrf }}">
-              <input type="password" name="password" placeholder="Yangi parol" autocomplete="new-password" required>
-              <button class="btn">Parolni tiklash</button>
-            </form>
-            <form method="post" action="/settings/admins/{{ a.id }}/delete" class="inline-form"
-                  onsubmit="return confirm('«{{ a.username }}» hisobi o‘chirilsinmi?')">
-              <input type="hidden" name="csrf" value="{{ csrf }}">
-              <button class="btn btn-danger">O‘chirish</button>
-            </form>
-          </div>
-        </td>
+        <td><a class="btn" href="/settings/admins/{{ a.id }}">Ruxsatlar va parol</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-<div class="grid detail section">
-  <form class="card" method="post" action="/settings/admins">
-    <h2>Yangi hisob</h2>
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label class="field">
-      <span>Login</span>
-      <input type="text" name="username" placeholder="masalan: dilnoza" autocomplete="off" required>
-    </label>
-    <label class="field">
-      <span>Parol</span>
-      <input type="password" name="password" autocomplete="new-password" required>
-    </label>
-    <label class="field">
-      <span>Rol</span>
-      <select name="role">
-        {% for r in ROLES %}<option value="{{ r }}" {{ 'selected' if r == 'viewer' }}>{{ ROLE_LABELS[r] }}</option>{% endfor %}
-      </select>
-    </label>
-    <p class="hint">Login: 3–32 ta belgi, lotin harflari, raqam, <code>. _ -</code>. Parol: kamida 8 ta belgi.</p>
-    <div class="actions"><button class="btn btn-primary">Qo‘shish</button></div>
-  </form>
-
-  <div class="card">
-    <h2>Rollar nima qila oladi</h2>
-    <dl class="info">
-      <dt>To‘liq admin</dt>
-      <dd>Ommaviy xabar, yetkazilmagan arizalarni qayta yuborish va ko‘ruvchining hamma imkoniyatlari.</dd>
-      <dt>Ko‘ruvchi</dt>
-      <dd>Arizalar va foydalanuvchilarni ko‘radi, holat qo‘yadi, CV va CSV yuklab oladi. Ommaviy xabar yubora olmaydi.</dd>
-    </dl>
-    <p class="hint">
-      Bu sahifa faqat sizga — <code>.env</code> dagi <strong>{{ ADMIN_USERNAME }}</strong> hisobiga ko‘rinadi.
-      Boshqa adminlar, hatto to‘liq rol bilan ham, hisob qo‘sha yoki o‘chira olmaydi.
-      Unutilgan parolni shu yerdan tiklaysiz; o‘z parolingiz esa <code>ADMIN_PASSWORD</code> orqali o‘zgaradi.
-    </p>
-  </div>
-</div>
+<form class="card section" method="post" action="/settings/admins" style="max-width: 720px">
+  <h2>Yangi admin</h2>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label class="field">
+    <span>Login</span>
+    <input type="text" name="username" placeholder="masalan: dilnoza" autocomplete="off" required>
+  </label>
+  <label class="field">
+    <span>Parol</span>
+    <input type="password" name="password" autocomplete="new-password" required>
+  </label>
+  <p class="hint">Login: 3–32 ta belgi, lotin harflari, raqam, <code>. _ -</code>. Parol: kamida 8 ta belgi.</p>
+  <h3>Nima qila oladi</h3>
+  {{ permission_boxes([]) }}
+  <p class="hint">Hech narsa belgilanmasa, admin kira oladi, lekin hech qaysi bo‘limni ko‘rmaydi. Keyin o‘zgartirish mumkin.</p>
+  <div class="actions"><button class="btn btn-primary">Qo‘shish</button></div>
+</form>
 {% endblock %}

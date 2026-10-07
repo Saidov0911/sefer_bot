@@ -1,0 +1,18 @@
+{# Ruxsatlar katakchalari: granted — belgilab qo'yiladigan kalitlar to'plami #}
+{% macro permission_boxes(granted) -%}
+<div class="perm-tools">
+  <button type="button" class="link" onclick="this.closest('form').querySelectorAll('input[name=granted]').forEach(b => b.checked = true)">Hammasini belgilash</button>
+  <button type="button" class="link" onclick="this.closest('form').querySelectorAll('input[name=granted]').forEach(b => b.checked = false)">Tozalash</button>
+</div>
+{% for group, items in PERMISSION_GROUPS %}
+<fieldset class="perm-group">
+  <legend>{{ group }}</legend>
+  {% for key, label, note in items %}
+  <label class="perm">
+    <input type="checkbox" name="granted" value="{{ key }}" {{ 'checked' if key in granted }}>
+    <span><strong>{{ label }}</strong><small>{{ note }}</small></span>
+  </label>
+  {% endfor %}
+</fieldset>
+{% endfor %}
+{%- endmacro %}

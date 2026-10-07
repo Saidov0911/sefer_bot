@@ -43,11 +43,12 @@
         {% endif %}
       </dl>
       <div class="actions">
-        <a class="btn btn-primary" href="/applications/{{ app.user_id }}/cv">📄 CV yuklab olish</a>
+        {% if user.can('applications.cv') %}<a class="btn btn-primary" href="/applications/{{ app.user_id }}/cv">📄 CV yuklab olish</a>{% endif %}
         {% if group_link %}<a class="btn" href="{{ group_link }}" target="_blank" rel="noopener">💬 Guruhdagi xabar</a>{% endif %}
       </div>
     </div>
 
+{% if user.can('applications.status') %}
     <form class="card" method="post" action="/applications/{{ app.user_id }}/status">
       <h2>Holatni o‘zgartirish</h2>
       <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -60,6 +61,7 @@
       <p class="hint">Xabar «Ko‘rib chiqilmoqda», «Qabul qilindi» va «Rad etildi» holatlari uchun yuboriladi.</p>
       <div class="actions"><button class="btn btn-primary">Saqlash</button></div>
     </form>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
